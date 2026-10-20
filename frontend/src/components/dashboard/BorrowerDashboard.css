@@ -1,0 +1,350 @@
+.borrower-dashboard {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 10px 20px 40px;
+}
+
+/* Header */
+.dashboard-header {
+  margin-bottom: 24px;
+}
+
+.dashboard-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #075b0a;
+  margin: 0 0 6px 0;
+}
+
+.dashboard-header p {
+  font-size: 15px;
+  color: #555;
+  margin: 0;
+}
+
+/* Stats Card */
+.stats-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.stat-box {
+  background: #f8faf8;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.stat-box:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(7, 91, 10, 0.12);
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #075b0a;
+}
+
+.view-all {
+  text-align: right;
+  margin-top: 16px;
+}
+
+.view-all a {
+  color: #075b0a;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.view-all a:hover {
+  text-decoration: underline;
+}
+
+/* Section Cards */
+.section-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+
+.section-card h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222;
+  margin: 0 0 20px 0;
+}
+
+/* Request Progress */
+.progress-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 90px;
+}
+
+.step-icon {
+  font-size: 28px;
+  color: #075b0a;
+}
+
+.step span {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.step-line {
+  flex: 1;
+  height: 3px;
+  background: #075b0a;
+  margin: 0 8px;
+  margin-bottom: 28px;
+}
+
+.progress-bar-container {
+  margin-top: 20px;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 100%;
+  background: #075b0a;
+  border-radius: 10px;
+}
+
+/* Upcoming Reservations */
+.reservations-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+}
+
+.reservation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.reservation-item:last-child {
+  border-bottom: none;
+}
+
+.reservation-item:hover {
+  background: #f7faf7;
+}
+
+.reservation-item.empty {
+  height: 48px;
+  cursor: default;
+}
+
+.reservation-item.empty:hover {
+  background: transparent;
+}
+
+.reservation-title {
+  color: #333;
+}
+
+.status {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.status.approved {
+  color: #075b0a;
+}
+
+.status.pending {
+  color: #d97706;
+}
+
+.status.rejected {
+  color: #dc2626;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-steps {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .step-line {
+    width: 3px;
+    height: 24px;
+    margin: 0;
+  }
+}
+
+
+/* Request Progress List */
+.request-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.request-progress-item {
+  padding: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.request-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.request-progress-header h3 {
+  margin: 0 0 5px;
+  font-size: 16px;
+  color: #075b0a;
+}
+
+.request-progress-header p {
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.request-progress-item .progress-steps {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.request-progress-item .step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 75px;
+  color: #888;
+  font-size: 12px;
+  text-align: center;
+}
+
+.request-progress-item .step.completed span {
+  color: #16803d;
+}
+
+.request-progress-item .step.current span {
+  color: #b77900;
+  font-weight: 600;
+}
+
+.request-progress-item .step-icon {
+  font-size: 17px;
+  color: #16803d;
+}
+
+.request-progress-item .step-line {
+  flex: 1;
+  height: 3px;
+  background: #e5e7eb;
+  border-radius: 5px;
+  margin: 0;
+}
+
+.request-progress-item .step-line.completed {
+  background: #16803d;
+}
+
+.request-final-status {
+  margin: 15px 0 0;
+  font-size: 13px;
+  color: #b42318;
+  text-transform: capitalize;
+}
+
+/* Request Status Labels */
+.status.for_delivery,
+.status.for_pickup,
+.status.ongoing,
+.status.returned,
+.status.completed {
+  color: #075b0a;
+}
+
+.status.cancelled,
+.status.overdue {
+  color: #dc2626;
+}
+
+/* Mobile Layout */
+@media (max-width: 480px) {
+  .request-progress-item {
+    padding: 12px;
+  }
+
+  .request-progress-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .request-progress-item .step {
+    min-width: 55px;
+    font-size: 10px;
+  }
+
+  .request-progress-item .progress-steps {
+    gap: 4px;
+  }
+
+  .request-progress-item .step-line {
+    margin-bottom: 20px;
+  }
+}

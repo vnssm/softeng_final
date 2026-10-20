@@ -1,0 +1,113 @@
+.borrowing-policies-pane {
+  width: 100%;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.borrowing-policies-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 24px 0;
+}
+
+.policies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+/* Card Selection Row */
+.policy-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 18px 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.policy-card:hover {
+  border-color: #065f46;
+  background-color: #f0fdf4;
+}
+
+.policy-info h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.policy-info p {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.policy-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check-icon {
+  font-size: 1.35rem;
+  color: #9ca3af;
+  transition: color 0.2s ease;
+}
+
+.check-icon.checked {
+  color: #065f46;
+}
+
+/* Field Input Group */
+.policy-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.policy-field-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.number-input-wrapper {
+  width: 140px;
+}
+
+.number-input-wrapper input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #f9fafb;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.number-input-wrapper input:focus {
+  border-color: #065f46;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

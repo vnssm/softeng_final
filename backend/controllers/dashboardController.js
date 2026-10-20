@@ -1,0 +1,252 @@
+const pool = require("../config/db");
+
+// ======================
+// BORROWER DASHBOARD
+// ======================
+exports.getBorrowerDashboard = async (req, res) => {
+  try {
+
+    await pool.query(
+      `UPDATE requests
+      SET status = 'overdue'
+      WHERE request_type = 'equipment'
+        AND status IN (
+          'approved',
+          'for_delivery',
+          'for_pickup',
+          'ongoing'
+        )
+        AND date_end IS NOT NULL
+        AND time_end IS NOT NULL
+        AND TIMESTAMP(date_end, time_end) < NOW()`
+    );
+
+    const userId = req.user.id; // comes from auth middleware
+
+    // 1. Pending Requests (equipment)
+    const [pendingRequests] = await pool.query(
+      `SELECT COUNT(*) AS count FROM requests 
+       WHERE user_id = ? AND request_type = 'equipment' AND status = 'pending'`,
+      [userId]
+    );
+
+    // 2. Pending Reservations (facility)
+    const [pendingReservations] = await pool.query(
+      `SELECT COUNT(*) AS count FROM requests 
+       WHERE user_id = ? AND request_type = 'facility' AND status = 'pending'`,
+      [userId]
+    );
+
+    // 3. Active Borrowings (equipment that is approved / ongoing)
+    const [activeBorrowings] = await pool.query(
+      `SELECT COUNT(*) AS count FROM requests 
+       WHERE user_id = ? AND request_type = 'equipment' 
+       AND status IN ('approved', 'for_delivery', 'for_pickup', 'ongoing')`,
+      [userId]
+    );
+
+    // 4. Active Reservations (facility that is approved / ongoing)
+    const [activeReservations] = await pool.query(
+      `SELECT COUNT(*) AS count FROM requests 
+       WHERE user_id = ? AND request_type = 'facility' 
+       AND status IN ('approved', 'ongoing')`,
+      [userId]
+    );
+
+    // 5. Upcoming Reservations (approved facility reservations only)
+    const [upcoming] = await pool.query(
+      `SELECT
+         r.id,
+         r.request_code,
+         r.date_needed,
+         r.date_end,
+         r.time_start,
+         r.time_end,
+         r.status,
+         f.name AS facility_name
+       FROM requests r
+       INNER JOIN facilities f ON f.id = r.facility_id
+       WHERE r.user_id = ?
+         AND r.request_type = 'facility'
+         AND r.status = 'approved'
+         AND r.date_end >= CURDATE()
+       ORDER BY r.date_needed ASC, r.time_start ASC`,
+      [userId]
+    );
+
+    // 6. Request progress (all requests belonging to this borrower)
+    const [requestProgress] = await pool.query(
+      `SELECT
+         id,
+         request_code,
+         request_type,
+         status,
+         created_at
+       FROM requests
+       WHERE user_id = ?
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+
+    res.status(200).json({
+      stats: {
+        pendingRequests: pendingRequests[0].count,
+        pendingReservations: pendingReservations[0].count,
+        activeBorrowings: activeBorrowings[0].count,
+        activeReservations: activeReservations[0].count,
+      },
+      upcomingReservations: upcoming,
+      requestProgress: requestProgress,
+    });
+  } catch (error) {
+    console.error("Borrower Dashboard error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ======================
+// PERSONNEL DASHBOARD
+// ======================
+exports.getPersonnelDashboard = async (req, res) => {
+  try {
+
+    await pool.query(
+      `UPDATE requests
+       SET status = 'overdue'
+       WHERE status IN (
+         'approved',
+         'for_delivery',
+         'for_pickup',
+         'ongoing'
+       )
+       AND date_end IS NOT NULL
+       AND time_end IS NOT NULL
+       AND TIMESTAMP(date_end, time_end) < NOW()`
+    );
+    // 1. Stats
+    const [pending] = await pool.query(
+      `SELECT COUNT(*) AS count FROM requests WHERE status = 'pending'`
+    );
+
+    const [approved] = await pool.query(
+      `SELECT COUNT(*) AS count FROM requests WHERE status IN ('approved', 'for_delivery', 'for_pickup')`
+    );
+
+    const [returns] = await pool.query(
+      `SELECT COUNT(*) AS count FROM requests WHERE status = 'returned'`
+    );
+
+    const [overdue] = await pool.query(
+      `SELECT COUNT(*) AS count FROM requests WHERE status = 'overdue'`
+    );
+
+    // 2. Today's Tasks (assignments for this personnel)
+    const personnelId = req.user.id;
+
+    const [todayTasks] = await pool.query(
+      `SELECT a.id, a.title, a.status, a.scheduled_time, a.location,
+              r.request_code
+       FROM assignments a
+       LEFT JOIN requests r ON r.id = a.request_id
+       WHERE a.personnel_id = ?
+         AND DATE(a.scheduled_time) = CURDATE()
+       ORDER BY a.scheduled_time ASC
+       LIMIT 10`,
+      [personnelId]
+    );
+
+    // 3. Recent Requests (latest pending/approved)
+    const [recentRequests] = await pool.query(
+      `SELECT r.id, r.request_code, r.status, r.created_at,
+              CONCAT(u.first_name, ' ', u.last_name) AS requester,
+              u.college_department
+       FROM requests r
+       LEFT JOIN users u ON u.id = r.user_id
+       ORDER BY r.created_at DESC
+       LIMIT 5`
+    );
+
+    res.status(200).json({
+      stats: {
+        pending: pending[0].count,
+        approved: approved[0].count,
+        returns: returns[0].count,
+        overdue: overdue[0].count,
+      },
+      todayTasks,
+      recentRequests,
+    });
+  } catch (error) {
+    console.error("Personnel Dashboard error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+exports.getAdminDashboard = async (req, res) => {
+  try {
+    // Count active user accounts
+    const [users] = await pool.query(
+      "SELECT COUNT(*) AS count FROM users WHERE is_active = 1"
+    );
+
+    // Count registered equipment
+    const [equipment] = await pool.query(
+      "SELECT COUNT(*) AS count FROM equipment"
+    );
+
+    // Count all borrowing and facility requests
+    const [transactions] = await pool.query(
+      "SELECT COUNT(*) AS count FROM requests"
+    );
+
+    // Count registered facilities
+    const [facilities] = await pool.query(
+      "SELECT COUNT(*) AS count FROM facilities"
+    );
+
+    // Count active equipment borrowings
+    const [activeBorrowings] = await pool.query(
+      `SELECT COUNT(*) AS count
+       FROM requests
+       WHERE request_type = 'equipment'
+       AND status IN ('for_delivery', 'for_pickup', 'ongoing')`
+    );
+
+    // Count upcoming approved facility reservations
+    const [upcomingReservations] = await pool.query(
+      `SELECT COUNT(*) AS count
+       FROM requests
+       WHERE request_type = 'facility'
+       AND status = 'approved'
+       AND date_needed >= CURDATE()`
+    );
+
+    // Count overdue transactions
+    const [overdue] = await pool.query(
+      `SELECT COUNT(*) AS count
+       FROM requests
+       WHERE status = 'overdue'`
+    );
+
+    res.status(200).json({
+      stats: {
+        totalUsers: users[0].count,
+        totalEquipment: equipment[0].count,
+        totalTransactions: transactions[0].count,
+        totalFacilities: facilities[0].count,
+      },
+      systemOverview: {
+        activeBorrowings: activeBorrowings[0].count,
+        upcomingReservations: upcomingReservations[0].count,
+        overdueTransactions: overdue[0].count,
+      },
+      systemActivity: [],
+    });
+  } catch (error) {
+    console.error("Admin Dashboard error:", error);
+    res.status(500).json({
+      message: "Failed to load admin dashboard",
+    });
+  }
+};

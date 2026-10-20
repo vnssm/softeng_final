@@ -1,0 +1,161 @@
+
+import React, { useState, useEffect } from "react";
+import BorrowModal from "./BorrowModal";
+import "./BorrowerEquipment.css";
+
+function BorrowerEquipment() {
+  const [equipments, setEquipments] = useState([]);
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Get equipment from the backend
+  const fetchEquipment = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        "http://localhost:5000/api/equipment",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load equipment.");
+      }
+
+      // Check the availability of each equipment
+      const equipmentList = data.map((item) => {
+        const available =
+          Boolean(Number(item.is_active)) &&
+          Number(item.quantity_available) > 0 &&
+          item.condition_status !== "Needs Repair" &&
+          item.condition_status !== "Damaged";
+
+        return {
+          ...item,
+          available: available,
+        };
+      });
+
+      setEquipments(equipmentList);
+    } catch (err) {
+      console.error("Error loading equipment:", err);
+      setError(err.message || "Unable to connect to the server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load equipment when the page opens
+  useEffect(() => {
+    fetchEquipment();
+  }, []);
+
+  // Open the borrowing modal
+  const handleView = (equipment) => {
+    if (!equipment.available) {
+      return;
+    }
+
+    setSelectedEquipment(equipment);
+    setIsModalOpen(true);
+  };
+
+  // Close the modal
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedEquipment(null);
+  };
+
+  return (
+    <div className="borrower-equipment">
+      {/* Header */}
+      <div className="equipment-header">
+        <h1>Equipment</h1>
+        <p>Equipment of MMSU</p>
+      </div>
+
+      {/* Loading message */}
+      {loading && (
+        <p>Loading equipment...</p>
+      )}
+
+      {/* Error message */}
+      {!loading && error && (
+        <div className="equipment-message">
+          <p>{error}</p>
+          <button onClick={fetchEquipment}>
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {/* Equipment Grid */}
+      {!loading && !error && (
+        <div className="equipment-grid">
+          {equipments.length === 0 ? (
+            <p>No equipment has been listed yet.</p>
+          ) : (
+            equipments.map((item) => (
+              <div
+                key={item.id}
+                className="equipment-card"
+              >
+                <div className="equipment-image">
+                  <div className="image-placeholder"></div>
+                </div>
+
+                <div className="equipment-name">
+                  {item.name}
+                </div>
+
+                <div className="equipment-details">
+                  <p>
+                    Category: {item.category || "Not specified"}
+                  </p>
+
+                  <p>
+                    Available: {item.quantity_available} /{" "}
+                    {item.quantity_total}
+                  </p>
+                </div>
+
+                <button
+                  className={`equipment-btn ${
+                    item.available
+                      ? "available"
+                      : "unavailable"
+                  }`}
+                  onClick={() => handleView(item)}
+                  disabled={!item.available}
+                >
+                  {item.available ? "View" : "Not Available"}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Borrow / Reserve Modal */}
+      {isModalOpen && selectedEquipment && (
+        <BorrowModal
+          equipment={selectedEquipment}
+          onClose={closeModal}
+        />
+      )}
+    </div>
+  );
+}
+
+export default BorrowerEquipment;

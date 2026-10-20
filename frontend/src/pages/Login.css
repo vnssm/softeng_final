@@ -1,0 +1,122 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f8f8f8;
+}
+
+/* Whole login page */
+.login-page {
+  min-height: 100vh;
+  background-color: #f8f8f8;
+}
+
+/* White main area */
+.login-container {
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Login Card */
+.login-card {
+  width: 340px;
+  min-height: 530px;
+
+  background-color: white;
+  border-radius: 14px;
+
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 25px 35px;
+}
+
+/* MMSU Logo */
+.mmsu-logo {
+  width: 155px;
+  height: 155px;
+  object-fit: contain;
+
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* Title */
+.login-card h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: normal;
+  text-align: center;
+
+  margin: 0 0 35px 0;
+  color: #111;
+}
+
+/* Form */
+.login-card form {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Username and Password */
+.login-card input {
+  width: 235px;
+  height: 37px;
+
+  border: 1px solid #bbb;
+  border-radius: 6px;
+
+  padding: 0 12px;
+  font-size: 13px;
+
+  margin-bottom: 16px;
+}
+
+.login-card input:focus {
+  outline: none;
+  border-color: #006400;
+}
+
+/* Login Button */
+.login-card button {
+  width: 68px;
+  height: 31px;
+
+  margin-top: 2px;
+
+  background-color: #005f08;
+  color: white;
+
+  border: none;
+  border-radius: 6px;
+
+  font-size: 13px;
+
+  cursor: pointer;
+}
+
+/* Forgot Password */
+.forgot-password {
+  margin-top: 10px;
+
+  color: #006400;
+  font-size: 11px;
+
+  text-decoration: none;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
+}

@@ -1,0 +1,75 @@
+.security-access-pane {
+  width: 100%;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.security-access-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 24px 0;
+}
+
+.security-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.security-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 18px 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.security-card:hover {
+  border-color: #065f46;
+  background-color: #f0fdf4;
+}
+
+.security-info h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.security-info p {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0;
+  max-width: 90%;
+}
+
+.security-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check-icon {
+  font-size: 1.35rem;
+  color: #9ca3af;
+  transition: color 0.2s ease;
+}
+
+.check-icon.checked {
+  color: #065f46;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

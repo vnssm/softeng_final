@@ -1,0 +1,253 @@
+.analytics-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+/* Page Header */
+.analytics-page-header h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #075b0a;
+  margin: 0 0 6px 0;
+}
+
+.analytics-page-header p {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Cards */
+.analytics-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Action Header */
+.action-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.action-header-text h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #075b0a;
+  margin: 0 0 4px 0;
+}
+
+.action-header-text p {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.action-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.time-select {
+  padding: 9px 18px;
+  border-radius: 20px;
+  border: 1px solid #d1d5db;
+  background-color: #f9fafb;
+  font-size: 0.875rem;
+  color: #374151;
+  outline: none;
+  cursor: pointer;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #075b0a;
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.download-btn:hover {
+  background-color: #054a08;
+}
+
+/* Chart Headers */
+.chart-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.chart-header-icon {
+  color: #075b0a;
+  font-size: 1.2rem;
+}
+
+.chart-card-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* Chart Layout */
+.custom-chart-container {
+  display: flex;
+  gap: 14px;
+  height: 260px;
+  position: relative;
+}
+
+.chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-align: right;
+  width: 28px;
+  padding-bottom: 32px;
+  user-select: none;
+}
+
+.chart-body-wrapper {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-grid-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.grid-line {
+  border-bottom: 1px dashed #e5e7eb;
+  width: 100%;
+}
+
+/* Bar Chart */
+.chart-bars-container {
+  position: relative;
+  z-index: 1;
+  height: calc(100% - 32px);
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.bar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  flex: 1;
+  max-width: 70px;
+}
+
+.bar-track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.bar-fill {
+  width: 100%;
+  background-color: #075b0a;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.4s ease, background-color 0.2s;
+}
+
+.bar-fill:hover {
+  background-color: #054a08;
+}
+
+.bar-label {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: #6b7280;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  user-select: none;
+}
+
+/* Line Chart */
+.svg-line-chart {
+  width: 100%;
+  height: calc(100% - 32px);
+  z-index: 1;
+  overflow: visible;
+}
+
+.svg-line-chart path[stroke] {
+  stroke: #075b0a;
+}
+
+.line-x-axis {
+  display: flex;
+  justify-content: space-between;
+  height: 32px;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.line-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  user-select: none;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .action-header-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .action-header-controls {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .time-select,
+  .download-btn {
+    width: 100%;
+  }
+
+  .custom-chart-container {
+    height: 220px;
+  }
+}

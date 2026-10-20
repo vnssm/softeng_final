@@ -1,0 +1,155 @@
+.borrower-equipment {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 20px 40px;
+}
+
+/* Header */
+.equipment-header {
+  background: white;
+  border-radius: 12px;
+  padding: 18px 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.equipment-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #075b0a;
+  margin: 0 0 4px 0;
+}
+
+.equipment-header p {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+/* Grid */
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+/* Card */
+.equipment-card {
+  background: white;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.equipment-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.equipment-image {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.image-placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #e5e7eb;
+  border-radius: 10px;
+}
+
+.equipment-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+  margin-bottom: 12px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Buttons */
+.equipment-btn {
+  width: 100%;
+  padding: 8px 0;
+  border-radius: 20px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.equipment-btn.available {
+  background: #075b0a;
+  color: white;
+}
+
+.equipment-btn.available:hover {
+  background: #054a08;
+}
+
+.equipment-btn.unavailable {
+  background: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+  .equipment-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .equipment-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .equipment-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Equipment Details */
+.equipment-details {
+  margin: 8px 0;
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+}
+
+.equipment-details p {
+  margin: 4px 0;
+}
+
+/* Disabled Equipment Button */
+.equipment-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* Loading Error Message */
+.equipment-message {
+  padding: 20px;
+  text-align: center;
+}
+
+.equipment-message button {
+  padding: 8px 16px;
+  background: #075b0a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}

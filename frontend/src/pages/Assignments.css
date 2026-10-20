@@ -1,0 +1,288 @@
+
+.assignments-page {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Page Header */
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  color: #111;
+}
+
+.page-header p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Filter Tabs */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.2s ease;
+}
+
+.tab:hover {
+  border-color: #075b0a;
+  color: #075b0a;
+}
+
+.tab.active {
+  background: #075b0a;
+  color: white;
+  border-color: #075b0a;
+}
+
+/* Assignments List */
+.assignments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Assignment Card */
+.assignment-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 20px;
+  transition: box-shadow 0.2s ease;
+}
+
+.assignment-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.assignment-left {
+  min-width: 0;
+  flex: 1;
+}
+
+.assignment-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 6px;
+}
+
+.assignment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+/* Equipment or Facility Label */
+.assignment-type {
+  display: inline-block;
+  font-size: 12px;
+  background: #f0f7f0;
+  color: #075b0a;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+/* Assignment Status */
+.assignment-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.status {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Assigned - Blue */
+.status.assigned {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Pending - Yellow */
+.status.pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+/* Due or Overdue - Red */
+.status.due,
+.status.overdue {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Completed - Green */
+.status.completed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* Pickup or Delivery Label Below Assigned */
+.assignment-fulfillment {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0369a1;
+  background: #eff8ff;
+  border: 1px solid #bfdbfe;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+/* Loading, Error, and Empty Messages */
+.empty-state {
+  padding: 30px 20px;
+  text-align: center;
+  color: #666;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+/* Mobile Layout */
+@media (max-width: 600px) {
+  .assignments-page {
+    width: 100%;
+  }
+
+  .page-header h1 {
+    font-size: 22px;
+  }
+
+  .assignment-card {
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .assignment-meta {
+    gap: 6px;
+  }
+
+  .assignment-right {
+    align-items: flex-end;
+  }
+
+  .status,
+  .assignment-fulfillment {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}
+
+
+.assignment-view-btn {
+  padding: 7px 18px;
+  border: 1px solid #075b0a;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #075b0a;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.assignment-view-btn:hover {
+  background: #075b0a;
+  color: #ffffff;
+}
+
+.assignment-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.assignment-modal {
+  width: 100%;
+  max-width: 550px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.assignment-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.assignment-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.assignment-modal-header button {
+  border: none;
+  background: transparent;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.assignment-modal-body {
+  padding: 12px 22px;
+}
+
+.assignment-modal-body p {
+  margin: 14px 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.assignment-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 15px 22px;
+  border-top: 1px solid #eeeeee;
+}
+
+.assignment-modal-footer button {
+  padding: 9px 22px;
+  border: none;
+  border-radius: 5px;
+  background: #075b0a;
+  color: #ffffff;
+  cursor: pointer;
+}
+
