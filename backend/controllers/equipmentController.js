@@ -72,11 +72,120 @@ exports.getEquipmentById = async (req, res) => {
 };
 
 // CREATE EQUIPMENT
+<<<<<<< HEAD
 exports.createEquipment = [
   equipmentUpload.single("image"),
   async (req, res) => {
     try {
       const {
+=======
+exports.createEquipment = async (req, res) => {
+  try {
+    const body = req.body || {};
+    const {
+      description,
+      category,
+      quantity_total,
+      location,
+      condition_status = "Available",
+    } = body;
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+
+    if (!name) {
+      return res.status(400).json({
+        message: "Equipment name is required.",
+      });
+    }
+
+    if (name.length > 150) {
+      return res.status(400).json({
+        message: "Equipment name must be 150 characters or fewer.",
+      });
+    }
+
+    const quantity = Number(quantity_total);
+    if (
+      quantity_total === undefined ||
+      quantity_total === null ||
+      quantity_total === "" ||
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > 500
+    ) {
+      return res.status(400).json({
+        message: "Quantity must be a whole number between 1 and 500.",
+      });
+    }
+
+    for (const [field, value, maxLength] of [
+      ["Category", category, 100],
+      ["Location", location, 150],
+    ]) {
+      if (value != null && typeof value !== "string") {
+        return res.status(400).json({
+          message: `${field} must be text.`,
+        });
+      }
+      if (typeof value === "string" && value.trim().length > maxLength) {
+        return res.status(400).json({
+          message: `${field} must be ${maxLength} characters or fewer.`,
+        });
+      }
+    }
+
+    if (description != null && typeof description !== "string") {
+      return res.status(400).json({
+        message: "Description must be text.",
+      });
+    }
+    if (
+      description != null &&
+      Buffer.byteLength(description.trim(), "utf8") > 65535
+    ) {
+      return res.status(400).json({
+        message: "Description is too long.",
+      });
+    }
+
+    if (
+      !["Available", "Unavailable", "Under maintenance"].includes(
+        condition_status
+      )
+    ) {
+      return res.status(400).json({
+        message: "Select a valid equipment condition.",
+      });
+    }
+
+    const [result] = await pool.query(
+      `INSERT INTO equipment
+        (name, description, category, quantity_total,
+         quantity_available, condition_status, location)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        name,
+        description?.trim() || null,
+        category?.trim() || null,
+        quantity,
+        quantity,
+        condition_status,
+        location?.trim() || null,
+      ]
+    );
+
+    const [newRows] = await pool.query(
+      "SELECT * FROM equipment WHERE id = ?",
+      [result.insertId]
+    );
+
+    await saveAuditLog(
+      req,
+      "Equipment Created",
+      "equipment",
+      result.insertId,
+      null,
+      newRows[0] || {
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
         name,
         description,
         category,
@@ -179,6 +288,7 @@ exports.updateEquipment = [
         ? `/uploads/equipment/${req.file.filename}`
         : oldValues.image_url || null;
 
+<<<<<<< HEAD
       await pool.query(
         `UPDATE equipment SET
           name = COALESCE(?, name),
@@ -234,6 +344,52 @@ exports.updateEquipment = [
         req,
         action,
         "equipment",
+=======
+    if (
+      condition_status !== undefined &&
+      !["Available", "Unavailable", "Under maintenance"].includes(
+        condition_status
+      )
+    ) {
+      return res.status(400).json({
+        message: "Select a valid equipment condition.",
+      });
+    }
+
+    if (
+      quantity_total !== undefined &&
+      quantity_total !== null &&
+      quantity_total !== "" &&
+      (!Number.isInteger(Number(quantity_total)) ||
+        Number(quantity_total) < 1 ||
+        Number(quantity_total) > 500)
+    ) {
+      return res.status(400).json({
+        message: "Quantity must be a whole number between 1 and 500.",
+      });
+    }
+
+    await pool.query(
+      `UPDATE equipment SET
+        name = COALESCE(?, name),
+        description = COALESCE(?, description),
+        category = COALESCE(?, category),
+        quantity_total = COALESCE(?, quantity_total),
+        quantity_available = COALESCE(?, quantity_available),
+        condition_status = COALESCE(?, condition_status),
+        location = COALESCE(?, location),
+        is_active = COALESCE(?, is_active)
+       WHERE id = ?`,
+      [
+        name ?? null,
+        description ?? null,
+        category ?? null,
+        quantity_total ?? null,
+        quantity_available ?? null,
+        condition_status ?? null,
+        location ?? null,
+        is_active ?? null,
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
         id,
         oldValues,
         newValues

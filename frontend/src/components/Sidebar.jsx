@@ -26,6 +26,7 @@ function Sidebar({ isOpen, onClose, role = "borrower" }) {
       { path: "/personnel-requests?filter=returns", label: "Returns" },
       { path: "/personnel-requests?filter=overdue", label: "Overdue" },
       { path: "/assignments", label: "My Assignments" },
+      { path: "/history", label: "History" },
       { path: "/notifications", label: "Notifications" },
       { path: "/profile", label: "Profile" },
     ],
@@ -38,6 +39,7 @@ function Sidebar({ isOpen, onClose, role = "borrower" }) {
       { path: "/transaction-management", label: "Transaction Management" },
       { path: "/reports", label: "Reports" },
       { path: "/audit-logs", label: "Audit Logs" },
+      { path: "/history", label: "History" },
       { path: "/system-settings", label: "System Settings" },
     ],
   };

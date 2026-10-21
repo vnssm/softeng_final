@@ -42,24 +42,8 @@ function FacilityReserveModal({ facility, onClose }) {
       [name]: value,
     }));
 
-    // Reset dependent fields if the start date changes
-    if (name === "startDate") {
-      setFormData((previousData) => ({
-        ...previousData,
-        startDate: value,
-        endDate: "",
-        startTime: "",
-        endTime: "",
-      }));
-    }
-
-    if (name === "startTime") {
-      setFormData((previousData) => ({
-        ...previousData,
-        startTime: value,
-        endTime: "",
-      }));
-    }
+    setMessage("");
+    setMessageType("");
   };
 
   const handleSubmit = async (e) => {
@@ -73,7 +57,22 @@ function FacilityReserveModal({ facility, onClose }) {
       !formData.startDate ||
       !formData.endDate ||
       !formData.startTime ||
+<<<<<<< HEAD
       !formData.endTime
+=======
+      !formData.endTime ||
+      !formData.purpose.trim()
+    ) {
+      setMessage("Please complete all reservation fields.");
+      setMessageType("error");
+      return;
+    }
+
+    if (
+      formData.endDate < formData.startDate ||
+      (formData.startDate === formData.endDate &&
+        formData.endTime <= formData.startTime)
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
     ) {
       setMessage("Please enter a start and end date and time.");
       setMessageType("error");
@@ -228,8 +227,13 @@ function FacilityReserveModal({ facility, onClose }) {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
+<<<<<<< HEAD
                 min={formData.startDate || minDate}
                 disabled={submitted || !isFacilityAvailable}
+=======
+                min={formData.startDate || undefined}
+                disabled={submitted}
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
                 required
               />
             </div>
@@ -243,9 +247,13 @@ function FacilityReserveModal({ facility, onClose }) {
                 name="startTime"
                 value={formData.startTime}
                 onChange={handleChange}
+<<<<<<< HEAD
                 min="07:00"
                 max="17:00"
                 disabled={submitted || !isFacilityAvailable}
+=======
+                disabled={submitted}
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
                 required
               />
             </div>
@@ -263,8 +271,12 @@ function FacilityReserveModal({ facility, onClose }) {
                     ? formData.startTime || undefined
                     : "07:00"
                 }
+<<<<<<< HEAD
                 max="17:00"
                 disabled={submitted || !isFacilityAvailable}
+=======
+                disabled={submitted}
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
                 required
               />
             </div>

@@ -1,10 +1,11 @@
 .navbar {
   width: 100%;
-  height: 72px;
+  min-height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 30px;
+  gap: 8px 12px;
+  padding: 0 clamp(12px, 2.5vw, 30px);
   background: #ffffff;
   border-bottom: 4px solid #075b0a;
   box-sizing: border-box;
@@ -17,17 +18,22 @@
 .navbar-left {
   display: flex;
   align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .navbar-brand {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
   text-decoration: none;
   color: inherit;
+  cursor: default;
 }
 
 .navbar-logo {
+  flex-shrink: 0;
   width: 48px;
   height: 48px;
   object-fit: contain;
@@ -36,6 +42,7 @@
 .navbar-title {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   line-height: 1.2;
 }
 
@@ -43,12 +50,18 @@
   color: #075b0a;
   font-size: 16px;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .navbar-title-sub {
   margin-top: 2px;
   color: #777;
   font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ================================
@@ -56,6 +69,7 @@
 ================================ */
 
 .sidebar-button {
+  flex-shrink: 0;
   width: 40px;
   height: 40px;
   display: flex;
@@ -79,17 +93,20 @@
 
 .navbar-right {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 16px;
 }
 
 .navbar-link {
+  flex-shrink: 0;
   color: #444;
   font-size: 15px;
   font-weight: 500;
   text-decoration: none;
   padding: 8px 14px;
   border-radius: 6px;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 
@@ -102,7 +119,7 @@
 .navbar-link.active {
   color: #075b0a;
   background: #e6f4e6;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* ================================
@@ -290,14 +307,4 @@
   object-position: center;
   border-radius: 50%;
   flex-shrink: 0;
-}
-
-/* The brand displays the logo and title without acting like a link */
-.navbar-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  color: inherit;
-  cursor: default;
 }

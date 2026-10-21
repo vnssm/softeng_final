@@ -56,9 +56,10 @@ exports.getBorrowerDashboard = async (req, res) => {
       [userId]
     );
 
-    // 5. Upcoming Reservations (approved facility reservations only)
+// 5. Upcoming Reservations and Active Borrowings (Facilities & Equipment)
     const [upcoming] = await pool.query(
       `SELECT
+<<<<<<< HEAD
          r.id,
          r.request_code,
          r.date_needed,
@@ -74,6 +75,30 @@ exports.getBorrowerDashboard = async (req, res) => {
          AND LOWER(r.status) = 'approved'
          AND r.date_end >= CURDATE()
        ORDER BY r.date_needed ASC, r.time_start ASC`,
+=======
+        r.id,
+        r.request_code,
+        r.date_needed,
+        r.date_end,
+        r.time_start,
+        r.time_end,
+        r.status,
+        r.request_type,
+        COALESCE(
+          f.name, 
+          (SELECT GROUP_CONCAT(e.name SEPARATOR ', ') 
+           FROM request_items ri 
+           JOIN equipment e ON e.id = ri.equipment_id 
+           WHERE ri.request_id = r.id),
+          'Equipment Request'
+        ) AS facility_name
+      FROM requests r
+      LEFT JOIN facilities f ON f.id = r.facility_id
+      WHERE r.user_id = ?
+        AND r.status IN ('approved', 'for_delivery', 'for_pickup', 'ongoing')
+        AND COALESCE(r.date_end, r.date_needed) >= CURDATE()
+      ORDER BY r.date_needed ASC, r.time_start ASC`,
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
       [userId]
     );
 
@@ -137,7 +162,13 @@ exports.getPersonnelDashboard = async (req, res) => {
     );
 
     const [approved] = await pool.query(
+<<<<<<< HEAD
       `SELECT COUNT(*) AS count FROM requests WHERE LOWER(status) IN ('approved', 'for_delivery', 'for_pickup', 'ongoing')`
+=======
+      `SELECT COUNT(*) AS count
+       FROM requests
+       WHERE status IN ('approved', 'for_delivery', 'for_pickup', 'ongoing')`
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
     );
 
     const [returns] = await pool.query(
@@ -148,14 +179,23 @@ exports.getPersonnelDashboard = async (req, res) => {
       `SELECT COUNT(*) AS count FROM requests WHERE LOWER(status) = 'overdue'`
     );
 
+<<<<<<< HEAD
     // 2. Today's Tasks (assignments for this personnel)
+=======
+    // 2. Today's approved pickup and delivery tasks for this personnel
+    const personnelId = req.user.id;
+
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
     const [todayTasks] = await pool.query(
-      `SELECT a.id, a.title, a.status, a.scheduled_time, a.location,
-              r.request_code
+      `SELECT a.id, a.assignment_type, a.scheduled_time, a.location,
+              r.request_code, r.fulfillment_type, r.status
        FROM assignments a
-       LEFT JOIN requests r ON r.id = a.request_id
+       INNER JOIN requests r ON r.id = a.request_id
        WHERE a.personnel_id = ?
-         AND DATE(a.scheduled_time) = CURDATE()
+         AND r.request_type = 'equipment'
+         AND r.status = 'approved'
+         AND LOWER(r.fulfillment_type) IN ('pickup', 'delivery')
+         AND DATE(r.date_needed) = CURDATE()
        ORDER BY a.scheduled_time ASC
        LIMIT 10`,
       [personnelId]
@@ -191,27 +231,27 @@ exports.getPersonnelDashboard = async (req, res) => {
 
 exports.getAdminDashboard = async (req, res) => {
   try {
-    // Count active user accounts
+    // 1. Count active user accounts
     const [users] = await pool.query(
       "SELECT COUNT(*) AS count FROM users WHERE is_active = 1"
     );
 
-    // Count registered equipment
+    // 2. Count registered equipment
     const [equipment] = await pool.query(
       "SELECT COUNT(*) AS count FROM equipment"
     );
 
-    // Count all borrowing and facility requests
+    // 3. Count all transactions
     const [transactions] = await pool.query(
       "SELECT COUNT(*) AS count FROM requests"
     );
 
-    // Count registered facilities
+    // 4. Count registered facilities
     const [facilities] = await pool.query(
       "SELECT COUNT(*) AS count FROM facilities"
     );
 
-    // Count active equipment borrowings
+    // 5. Count active equipment borrowings
     const [activeBorrowings] = await pool.query(
       `SELECT COUNT(*) AS count
        FROM requests
@@ -219,7 +259,7 @@ exports.getAdminDashboard = async (req, res) => {
        AND status IN ('for_delivery', 'for_pickup', 'ongoing')`
     );
 
-    // Count upcoming approved facility reservations
+    // 6. Count upcoming approved facility reservations
     const [upcomingReservations] = await pool.query(
       `SELECT COUNT(*) AS count
        FROM requests
@@ -228,13 +268,33 @@ exports.getAdminDashboard = async (req, res) => {
        AND date_needed >= CURDATE()`
     );
 
-    // Count overdue transactions
+    // 7. Count overdue transactions
     const [overdue] = await pool.query(
       `SELECT COUNT(*) AS count
        FROM requests
        WHERE LOWER(status) = 'overdue'`
     );
 
+    // 8. Get recent system activities
+    const [activities] = await pool.query(
+      `SELECT
+         a.id,
+         CONCAT(
+           COALESCE(CONCAT(u.first_name, ' ', u.last_name), 'System'),
+           ': ',
+           a.description
+         ) AS title,
+         DATE_FORMAT(
+           a.created_at,
+           '%b %d, %Y %h:%i %p'
+         ) AS time
+       FROM activity_logs a
+       LEFT JOIN users u ON u.id = a.user_id
+       ORDER BY a.created_at DESC
+       LIMIT 10`
+    );
+
+    // 9. Send dashboard data to the frontend
     res.status(200).json({
       stats: {
         totalUsers: users[0].count,
@@ -247,10 +307,12 @@ exports.getAdminDashboard = async (req, res) => {
         upcomingReservations: upcomingReservations[0].count,
         overdueTransactions: overdue[0].count,
       },
-      systemActivity: [],
+      systemActivity: activities,
     });
+
   } catch (error) {
     console.error("Admin Dashboard error:", error);
+
     res.status(500).json({
       message: "Failed to load admin dashboard",
     });

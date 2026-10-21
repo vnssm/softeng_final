@@ -10,20 +10,28 @@ function GSDFacilities() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddMode, setIsAddMode] = useState(false);
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
   const [isHeaderCompact, setIsHeaderCompact] = useState(false);
 
   const token = localStorage.getItem("token");
+=======
+  const [error, setError] = useState("");
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
 
   const fetchFacilities = async () => {
     try {
+      setError("");
+      const token = localStorage.getItem("token");
       const res = await fetch("http://localhost:5000/api/facilities", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to load");
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to load facilities.");
+      }
       setFacilities(data);
     } catch (err) {
-      console.error(err);
+      setError(err.message || "Failed to load facilities.");
     } finally {
       setLoading(false);
     }
@@ -54,9 +62,15 @@ function GSDFacilities() {
   }, []);
 
   const getStatus = (f) => {
-    if (!f.is_active) return "Unavailable";
-    if (!f.is_available) return "Unavailable";
-    return "Available";
+    if (Number(f.is_active) !== 1) return "Unavailable";
+    if (
+      ["Available", "Unavailable", "Under maintenance"].includes(
+        f.condition_status
+      )
+    ) {
+      return f.condition_status;
+    }
+    return Number(f.is_available) === 1 ? "Available" : "Unavailable";
   };
 
   const filtered = facilities.filter((f) =>
@@ -122,7 +136,9 @@ function GSDFacilities() {
 
       {/* Facilities List */}
       <div className="facilities-list">
-        {filtered.length === 0 ? (
+        {error ? (
+          <p role="alert">{error}</p>
+        ) : filtered.length === 0 ? (
           <p>No facilities found.</p>
         ) : (
           filtered.map((facility) => (
@@ -148,7 +164,7 @@ function GSDFacilities() {
                 <p className="facility-desc">
                   {facility.description || "No description"}
                 </p>
-                <span className={`status-badge ${getStatus(facility).toLowerCase().replace(" ", "-")}`}>
+                <span className={`status-badge ${getStatus(facility).toLowerCase().replaceAll(" ", "-")}`}>
                   {getStatus(facility)}
                 </span>
               </div>

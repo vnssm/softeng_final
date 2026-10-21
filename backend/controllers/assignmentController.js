@@ -26,6 +26,17 @@ exports.getMyAssignments = async (req, res) => {
         r.date_needed,
         r.time_start,
         r.time_end,
+        (SELECT f.name
+         FROM facilities f
+         WHERE f.id = r.facility_id) AS facility_name,
+        (SELECT GROUP_CONCAT(
+           DISTINCT e.name
+           ORDER BY e.name
+           SEPARATOR ', '
+         )
+         FROM request_items ri
+         JOIN equipment e ON e.id = ri.equipment_id
+         WHERE ri.request_id = r.id) AS equipment_names,
 
         CONCAT(u.first_name, ' ', u.last_name) AS borrower_name
 
@@ -33,7 +44,13 @@ exports.getMyAssignments = async (req, res) => {
       LEFT JOIN assignments a ON a.request_id = r.id
       LEFT JOIN users u ON r.user_id = u.id
 
-      WHERE r.status IN ('pending', 'approved', 'overdue')
+      WHERE r.status IN (
+        'pending',
+        'approved',
+        'overdue',
+        'completed',
+        'completed_with_issue'
+      )
          OR a.id IS NOT NULL
 
       ORDER BY r.created_at DESC`

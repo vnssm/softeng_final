@@ -166,6 +166,11 @@
   color: #b91c1c;
 }
 
+.status-badge.under-maintenance {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .manage-btn {
   align-self: flex-end;
   padding: 8px 24px;

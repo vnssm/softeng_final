@@ -119,7 +119,7 @@ exports.createBorrowing = async (req, res) => {
 
     // Check if the requested equipment exists and is active
     const [equipmentRows] = await connection.query(
-      `SELECT id, name, quantity_available
+      `SELECT id, name, quantity_available, condition_status
        FROM equipment
        WHERE id = ? AND is_active = TRUE
        FOR UPDATE`,
@@ -135,6 +135,16 @@ exports.createBorrowing = async (req, res) => {
     }
 
     const equipment = equipmentRows[0];
+
+    if (
+      !["Available", "Good"].includes(equipment.condition_status)
+    ) {
+      await connection.rollback();
+
+      return res.status(400).json({
+        message: "This equipment is not available for borrowing due to its condition.",
+      });
+    }
 
     if (Number(quantity) > equipment.quantity_available) {
       await connection.rollback();
@@ -366,6 +376,19 @@ exports.returnBorrowing = async (req, res) => {
     );
 
     await connection.query(
+      `INSERT INTO activity_logs
+       (user_id, action_type, description, related_type, related_id)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        userId,
+        "equipment_return",
+        "Marked equipment request " + request.request_code + " as returned",
+        "request",
+        requestId
+      ]
+    );
+
+    await connection.query(
       `INSERT INTO notifications
        (user_id, title, message, type, event_type, related_request_id)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -410,4 +433,3 @@ exports.returnBorrowing = async (req, res) => {
     }
   }
 };
-

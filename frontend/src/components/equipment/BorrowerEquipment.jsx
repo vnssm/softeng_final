@@ -35,15 +35,28 @@ function BorrowerEquipment() {
 
       // Check the availability of each equipment
       const equipmentList = data.map((item) => {
+        const rawConditionStatus = String(item.condition_status || "")
+          .trim()
+          .toLowerCase()
+          .replaceAll(" ", "_");
+        const conditionStatus = {
+          good: "Available",
+          needs_repair: "Under maintenance",
+          damaged: "Unavailable",
+          available: "Available",
+          unavailable: "Unavailable",
+          under_maintenance: "Under maintenance",
+        }[rawConditionStatus] || "Unavailable";
+        const status = conditionStatus;
         const available =
-          Boolean(Number(item.is_active)) &&
-          Number(item.quantity_available) > 0 &&
-          item.condition_status !== "Needs Repair" &&
-          item.condition_status !== "Damaged";
+          status === "Available" &&
+          Number(item.is_active) === 1 &&
+          Number(item.quantity_available) > 0;
 
         return {
           ...item,
-          available: available,
+          status,
+          available,
         };
       });
 
@@ -139,7 +152,7 @@ function BorrowerEquipment() {
                   onClick={() => handleView(item)}
                   disabled={!item.available}
                 >
-                  {item.available ? "View" : "Not Available"}
+                  {item.status}
                 </button>
               </div>
             ))

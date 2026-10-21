@@ -11,11 +11,11 @@ const {
   restrictTo
 } = require("../middleware/authMiddleware");
 
-// Get the logged-in borrower's activity history
+// Get the logged-in user's activity history
 router.get(
   "/my-activities",
   protect,
-  restrictTo("borrower"),
+  restrictTo("borrower", "personnel", "admin"),
   getMyActivities
 );
 

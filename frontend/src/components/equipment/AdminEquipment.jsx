@@ -48,10 +48,17 @@ function AdminEquipment() {
     if (!item.is_active) return "Unavailable";
 
     if (
-      item.condition_status === "Needs Repair" ||
-      item.condition_status === "Damaged"
+      item.condition_status === "Under maintenance" ||
+      item.condition_status === "Needs Repair"
     ) {
       return "Under Maintenance";
+    }
+
+    if (
+      item.condition_status === "Unavailable" ||
+      item.condition_status === "Damaged"
+    ) {
+      return "Unavailable";
     }
 
     if (Number(item.quantity_available) <= 0) {

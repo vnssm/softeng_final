@@ -13,7 +13,7 @@ function AdminFacilityModal({
     description: "",
     capacity: "",
     location: "",
-    is_available: 1,
+    is_available: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -34,7 +34,7 @@ function AdminFacilityModal({
         description: "",
         capacity: "",
         location: "",
-        is_available: 1,
+        is_available: "",
       });
     }
 
@@ -53,6 +53,7 @@ function AdminFacilityModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+<<<<<<< HEAD
     const name = form.name.trim();
     const capacity = form.capacity.trim();
 
@@ -67,7 +68,31 @@ function AdminFacilityModal({
     }
 
     setSaving(true);
+=======
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
     setError("");
+
+    if (
+      !form.name.trim() ||
+      !form.description.trim() ||
+      !form.location.trim() ||
+      form.capacity === ""
+    ) {
+      setError("Please complete all facility fields.");
+      return;
+    }
+
+    const capacity = Number(form.capacity);
+    if (!Number.isSafeInteger(capacity) || capacity < 1 || capacity > 1000) {
+      setError("Capacity must be a whole number between 1 and 1000.");
+      return;
+    }
+    if (![0, 1].includes(Number(form.is_available))) {
+      setError("Select facility availability.");
+      return;
+    }
+
+    setSaving(true);
 
     try {
       const token = localStorage.getItem("token");
@@ -84,9 +109,13 @@ function AdminFacilityModal({
         },
         body: JSON.stringify({
           ...form,
+<<<<<<< HEAD
           name,
           capacity:
             capacity === "" ? null : Number(capacity),
+=======
+          capacity,
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
           is_available: Number(form.is_available),
         }),
       });
@@ -149,18 +178,19 @@ function AdminFacilityModal({
             </label>
 
             <label className="admin-equipment-full">
-              Description
+              Description *
               <textarea
                 name="description"
                 value={form.description}
                 onChange={handleChange}
                 placeholder="Enter facility description"
                 rows="3"
+                required
               />
             </label>
 
             <label>
-              Capacity
+              Capacity *
               <input
                 type="number"
                 name="capacity"
@@ -168,18 +198,21 @@ function AdminFacilityModal({
                 onChange={handleChange}
                 placeholder="e.g. 100"
                 min="1"
+                max="1000"
                 step="1"
+                required
               />
             </label>
 
             <label>
-              Location
+              Location *
               <input
                 type="text"
                 name="location"
                 value={form.location}
                 onChange={handleChange}
                 placeholder="Enter facility location"
+                required
               />
             </label>
 

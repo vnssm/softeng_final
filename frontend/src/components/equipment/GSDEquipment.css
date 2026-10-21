@@ -107,6 +107,13 @@
   text-align: center;
 }
 
+.equipment-condition {
+  font-size: 13px;
+  color: #333;
+  margin: -6px 0 12px;
+  text-align: center;
+}
+
 /* Manage Button */
 .equipment-btn.manage {
   width: 100%;

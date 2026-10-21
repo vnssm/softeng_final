@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { FaSearch } from "react-icons/fa";
 import FacilityViewModal from "./FacilityViewModal";
@@ -15,7 +14,6 @@ function BorrowerFacilities() {
   const [error, setError] = useState("");
   const [isHeaderCompact, setIsHeaderCompact] = useState(false);
 
-  // Get facilities from the backend
   const fetchFacilities = async () => {
     try {
       setLoading(true);
@@ -23,28 +21,41 @@ function BorrowerFacilities() {
 
       const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        "http://localhost:5000/api/facilities",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch("http://localhost:5000/api/facilities", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to load facilities."
-        );
+        throw new Error(data.message || "Failed to load facilities.");
       }
 
       if (!Array.isArray(data)) {
         throw new Error("The server returned an invalid facility list.");
       }
 
-      setFacilities(data);
+      setFacilities(
+        data.map((facility) => {
+          // Consistent status resolution
+          let status = "Unavailable";
+
+          if (
+            facility.condition_status &&
+            ["Available", "Unavailable", "Under maintenance"].includes(
+              facility.condition_status
+            )
+          ) {
+            status = facility.condition_status;
+          } else if (Number(facility.is_available) === 1) {
+            status = "Available";
+          }
+
+          return { ...facility, status };
+        })
+      );
     } catch (err) {
       console.error("Error loading facilities:", err);
       setError(err.message || "Unable to connect to the server.");
@@ -53,51 +64,36 @@ function BorrowerFacilities() {
     }
   };
 
-  // Load facilities when the page opens
   useEffect(() => {
     fetchFacilities();
   }, []);
 
+  // Compact header on scroll
   useEffect(() => {
-    let lastScrollY = window.scrollY;
-
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-
-      if (currentScrollY < lastScrollY) {
-        setIsHeaderCompact(true);
-      } else if (currentScrollY === 0) {
-        setIsHeaderCompact(false);
-      }
-
-      lastScrollY = currentScrollY;
+      setIsHeaderCompact(currentScrollY > 40);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Search facilities by name
   const filtered = facilities.filter((facility) =>
-    (facility.name || "")
-      .toLowerCase()
-      .includes(search.toLowerCase())
+    (facility.name || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const getFacilityStatus = (facility) =>
     facility.status ||
     (Number(facility.is_available) === 1 ? "Available" : "Unavailable");
 
-  // Open facility details
   const openViewModal = (facility) => {
     setSelectedFacility(facility);
     setViewModalOpen(true);
   };
 
-  // Open reservation modal
   const openReserveModal = () => {
-    if (!selectedFacility || Number(selectedFacility.is_available) !== 1) {
+    if (!selectedFacility || getFacilityStatus(selectedFacility) !== "Available") {
       return;
     }
 
@@ -105,7 +101,6 @@ function BorrowerFacilities() {
     setReserveModalOpen(true);
   };
 
-  // Close all modals
   const closeAllModals = () => {
     setViewModalOpen(false);
     setReserveModalOpen(false);
@@ -139,9 +134,7 @@ function BorrowerFacilities() {
       {!loading && error && (
         <div className="facility-message">
           <p>{error}</p>
-          <button onClick={fetchFacilities}>
-            Try Again
-          </button>
+          <button onClick={fetchFacilities}>Try Again</button>
         </div>
       )}
 
@@ -156,20 +149,29 @@ function BorrowerFacilities() {
             </p>
           ) : (
             filtered.map((facility) => (
-              <div
-                key={facility.id}
-                className="facility-card"
-              >
+              <div key={facility.id} className="facility-card">
                 <div className="facility-image">
-                  <div className="image-placeholder"></div>
+                  {facility.image_url ? (
+                    <img
+                      src={`http://localhost:5000${facility.image_url}`}
+                      alt={facility.name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  ) : (
+                    <div className="image-placeholder" />
+                  )}
                 </div>
 
                 <div className="facility-info">
                   <h3>{facility.name}</h3>
 
                   <p className="facility-desc">
-                    {facility.description ||
-                      "No description available."}
+                    {facility.description || "No description available."}
                   </p>
 
                   <p className="facility-status">

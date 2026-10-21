@@ -26,19 +26,38 @@ function FacilityViewModal({ facility, onClose, onReserve }) {
 
             <div className="status-row">
               <span>Status:</span>
+<<<<<<< HEAD
               <span className={`status-badge ${status === "Available" ? "available" : "using"}`}>
                 {status}
+=======
+              <span
+                className={`status-badge ${facility?.status
+                  ?.toLowerCase()
+                  .replaceAll(" ", "-") || "unavailable"}`}
+              >
+                {facility?.status}
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
               </span>
             </div>
           </div>
 
           <button
+<<<<<<< HEAD
             className={`reserve-btn facility-view-reserve ${isAvailable ? "" : "disabled-reserve"}`}
             onClick={isAvailable ? onReserve : undefined}
             disabled={!isAvailable}
             aria-disabled={!isAvailable}
           >
             Reserve
+=======
+            className="reserve-btn"
+            onClick={onReserve}
+            disabled={facility?.status !== "Available"}
+          >
+            {facility?.status === "Available"
+              ? "Reserve"
+              : "Reservations Unavailable"}
+>>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
           </button>
         </div>
       </div>

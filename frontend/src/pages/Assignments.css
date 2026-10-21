@@ -55,110 +55,127 @@
 .assignments-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
-/* Assignment Card */
 .assignment-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 16px 20px;
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: box-shadow 0.2s ease;
 }
 
 .assignment-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 
-.assignment-left {
+.assignment-card-top,
+.assignment-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.assignment-card-top {
+  margin-bottom: 10px;
+}
+
+.assignment-card-title {
   min-width: 0;
-  flex: 1;
-}
-
-.assignment-title {
+  margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #111;
-  margin-bottom: 6px;
+  color: #1f2937;
 }
 
-.assignment-meta {
+.assignment-card-details {
+  margin-bottom: 12px;
+}
+
+.assignment-card-details p {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  margin: 4px 0;
   font-size: 13px;
-  color: #666;
-  margin-bottom: 8px;
+  color: #4b5563;
 }
 
-/* Equipment or Facility Label */
-.assignment-type {
-  display: inline-block;
-  font-size: 12px;
-  background: #f0f7f0;
-  color: #075b0a;
-  padding: 3px 10px;
-  border-radius: 12px;
-}
-
-/* Assignment Status */
-.assignment-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
+.assignment-detail-icon {
   flex-shrink: 0;
+  font-size: 13px;
+  color: #6b7280;
 }
 
-.status {
-  display: inline-block;
-  padding: 5px 12px;
-  border-radius: 20px;
+.assignment-schedule-icon {
+  width: 13px;
+}
+
+.assignment-card-divider {
+  height: 1px;
+  margin-bottom: 12px;
+  background: #e5e7eb;
+}
+
+.assignment-requested-by {
   font-size: 12px;
+  color: #9ca3af;
+}
+
+.assignment-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 20px;
+  background: #eef7ee;
+  color: #b45309;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
 
-/* Assigned - Blue */
-.status.assigned {
-  background: #e0f2fe;
-  color: #0369a1;
+.assignment-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #b45309;
 }
 
-/* Pending - Yellow */
-.status.pending {
-  background: #fef3c7;
+.assignment-status-badge.assigned,
+.assignment-status-badge.approved,
+.assignment-status-badge.completed {
+  color: #075b0a;
+}
+
+.assignment-status-badge.assigned .assignment-status-dot,
+.assignment-status-badge.approved .assignment-status-dot,
+.assignment-status-badge.completed .assignment-status-dot {
+  background: #075b0a;
+}
+
+.assignment-status-badge.pending,
+.assignment-status-badge.returned {
   color: #b45309;
 }
 
-/* Due or Overdue - Red */
-.status.due,
-.status.overdue {
-  background: #fee2e2;
-  color: #b91c1c;
+.assignment-status-badge.pending .assignment-status-dot,
+.assignment-status-badge.returned .assignment-status-dot {
+  background: #b45309;
 }
 
-/* Completed - Green */
-.status.completed {
-  background: #dcfce7;
-  color: #15803d;
+.assignment-status-badge.due,
+.assignment-status-badge.overdue {
+  background: #ffebee;
+  color: #e53935;
 }
 
-/* Pickup or Delivery Label Below Assigned */
-.assignment-fulfillment {
-  font-size: 12px;
-  font-weight: 600;
-  color: #0369a1;
-  background: #eff8ff;
-  border: 1px solid #bfdbfe;
-  padding: 4px 10px;
-  border-radius: 12px;
-  white-space: nowrap;
+.assignment-status-badge.due .assignment-status-dot,
+.assignment-status-badge.overdue .assignment-status-dot {
+  background: #e53935;
 }
 
 /* Loading, Error, and Empty Messages */
@@ -183,40 +200,41 @@
   }
 
   .assignment-card {
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px;
+    padding: 16px 14px;
   }
 
-  .assignment-meta {
-    gap: 6px;
-  }
-
-  .assignment-right {
-    align-items: flex-end;
-  }
-
-  .status,
-  .assignment-fulfillment {
-    font-size: 11px;
-    padding: 4px 8px;
+  .assignment-card-title {
+    font-size: 15px;
   }
 }
 
 
 .assignment-view-btn {
-  padding: 7px 18px;
-  border: 1px solid #075b0a;
-  border-radius: 5px;
-  background: #ffffff;
-  color: #075b0a;
-  font-size: 14px;
+  flex-shrink: 0;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 20px;
+  background: #075b0a;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .assignment-view-btn:hover {
-  background: #075b0a;
-  color: #ffffff;
+  background: #054a08;
+}
+
+.assignment-view-btn:disabled,
+.assignment-view-btn.disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.assignment-view-btn:disabled:hover,
+.assignment-view-btn.disabled:hover {
+  background: #9ca3af;
 }
 
 .assignment-modal-overlay {
@@ -285,4 +303,3 @@
   color: #ffffff;
   cursor: pointer;
 }
-
