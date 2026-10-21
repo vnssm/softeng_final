@@ -7,7 +7,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
     description: "",
     capacity: "",
     location: "",
-    status: "",
+    status: "Available",
   });
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -27,15 +27,6 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
           facility.condition_status ||
           (Number(facility.is_available) === 1 ? "Available" : "Unavailable"),
       });
-    } else {
-      setFormData({
-        name: "",
-        description: "",
-        capacity: "",
-        location: "",
-        status: "",
-      });
-
       setPreviewUrl(
         facility.image_url
           ? `http://localhost:5000${facility.image_url}`
@@ -49,6 +40,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
         location: "",
         status: "Available",
       });
+
       setPreviewUrl("");
     }
   }, [facility, isAddMode]);
@@ -132,6 +124,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
       payload.append("capacity", formData.capacity || "");
       payload.append("location", formData.location || "");
       payload.append("is_available", formData.status === "Available" ? "1" : "0");
+      payload.append("condition_status", formData.status);
 
       if (selectedImage) {
         payload.append("image", selectedImage);
@@ -243,35 +236,43 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
             )}
           </div>
 
-          <div className="form-group">
-            <label>State of facility</label>
-            <div className="status-buttons">
-              <button
-                type="button"
-                aria-pressed={formData.status === "Available"}
-                className={`status-btn ${formData.status === "Available" ? "active" : ""}`}
-                onClick={() => setStatus("Available")}
-              >
-                Available
-              </button>
-              <button
-                type="button"
-                aria-pressed={formData.status === "Unavailable"}
-                className={`status-btn ${formData.status === "Unavailable" ? "active" : ""}`}
-                onClick={() => setStatus("Unavailable")}
-              >
-                Unavailable
-              </button>
-              <button
-                type="button"
-                aria-pressed={formData.status === "Under maintenance"}
-                className={`status-btn ${formData.status === "Under maintenance" ? "active" : ""}`}
-                onClick={() => setStatus("Under maintenance")}
-              >
-                Under maintenance
-              </button>
+          {!isAddMode && (
+            <div className="form-group">
+              <label>State of facility *</label>
+              <div className="status-buttons">
+                <button
+                  type="button"
+                  aria-pressed={formData.status === "Available"}
+                  className={`status-btn ${
+                    formData.status === "Available" ? "active" : ""
+                  }`}
+                  onClick={() => setStatus("Available")}
+                >
+                  Available
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={formData.status === "Unavailable"}
+                  className={`status-btn ${
+                    formData.status === "Unavailable" ? "active" : ""
+                  }`}
+                  onClick={() => setStatus("Unavailable")}
+                >
+                  Unavailable
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={formData.status === "Under maintenance"}
+                  className={`status-btn ${
+                    formData.status === "Under maintenance" ? "active" : ""
+                  }`}
+                  onClick={() => setStatus("Under maintenance")}
+                >
+                  Under maintenance
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
 

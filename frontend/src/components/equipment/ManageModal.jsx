@@ -15,7 +15,7 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
     category: "",
     quantity_total: "",
     location: "",
-    condition_status: "",
+    condition_status: "Available",
   });
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -36,16 +36,6 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
           equipment.condition_status || "Available"
         ),
       });
-    } else {
-      setFormData({
-        name: "",
-        description: "",
-        category: "",
-        quantity_total: "",
-        location: "",
-        condition_status: "",
-      });
-
       setPreviewUrl(
         equipment.image_url
           ? `http://localhost:5000${equipment.image_url}`
@@ -56,10 +46,11 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
         name: "",
         description: "",
         category: "",
-        quantity_total: 1,
+        quantity_total: "",
         location: "",
-        condition_status: "Good",
+        condition_status: "Available",
       });
+
       setPreviewUrl("");
     }
   }, [equipment, isAddMode]);
@@ -161,17 +152,7 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-<<<<<<< HEAD
         body: payload,
-=======
-        body: JSON.stringify({
-          ...formData,
-          name,
-          quantity_total: quantity,
-          category: formData.category.trim(),
-          location: formData.location.trim(),
-        }),
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
       });
 
       const data = await res.json();
@@ -229,15 +210,21 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
 
           <div className="form-group">
             <label>Category *</label>
-            <input
-              type="text"
+            <select
               name="category"
               value={formData.category}
               onChange={handleChange}
-              placeholder="e.g. AV Equipment, Furniture"
-              maxLength={100}
               required
-            />
+            >
+              <option value="">Select a category</option>
+              <option value="Computers & Laptops">Computers &amp; Laptops</option>
+              <option value="Displays & Monitors">Displays &amp; Monitors</option>
+              <option value="Audio/Visual (A/V) Equipment">
+                Audio/Visual (A/V) Equipment
+              </option>
+              <option value="Equipment">Equipment</option>
+              <option value="Furniture">Furniture</option>
+            </select>
           </div>
 
           <div className="form-group">
@@ -269,7 +256,6 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
           </div>
 
           <div className="form-group">
-<<<<<<< HEAD
             <label>Equipment Photo</label>
             <input type="file" accept="image/*" onChange={handleImageChange} />
             {previewUrl && (
@@ -289,44 +275,47 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
             )}
           </div>
 
-          <div className="form-group">
-            <label>Condition / Status</label>
-=======
-            <label>Condition / Status *</label>
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
-            <div className="status-buttons">
-              <button
-                type="button"
-                aria-pressed={formData.condition_status === "Available"}
-                className={`status-btn ${
-                  formData.condition_status === "Available" ? "active" : ""
-                }`}
-                onClick={() => setStatus("Available")}
-              >
-                Available
-              </button>
-              <button
-                type="button"
-                aria-pressed={formData.condition_status === "Unavailable"}
-                className={`status-btn ${
-                  formData.condition_status === "Unavailable" ? "active" : ""
-                }`}
-                onClick={() => setStatus("Unavailable")}
-              >
-                Unavailable
-              </button>
-              <button
-                type="button"
-                aria-pressed={formData.condition_status === "Under maintenance"}
-                className={`status-btn ${
-                  formData.condition_status === "Under maintenance" ? "active" : ""
-                }`}
-                onClick={() => setStatus("Under maintenance")}
-              >
-                Under maintenance
-              </button>
+          {!isAddMode && (
+            <div className="form-group">
+              <label>Condition / Status *</label>
+              <div className="status-buttons">
+                <button
+                  type="button"
+                  aria-pressed={formData.condition_status === "Available"}
+                  className={`status-btn ${
+                    formData.condition_status === "Available" ? "active" : ""
+                  }`}
+                  onClick={() => setStatus("Available")}
+                >
+                  Available
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={formData.condition_status === "Unavailable"}
+                  className={`status-btn ${
+                    formData.condition_status === "Unavailable" ? "active" : ""
+                  }`}
+                  onClick={() => setStatus("Unavailable")}
+                >
+                  Unavailable
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={
+                    formData.condition_status === "Under maintenance"
+                  }
+                  className={`status-btn ${
+                    formData.condition_status === "Under maintenance"
+                      ? "active"
+                      : ""
+                  }`}
+                  onClick={() => setStatus("Under maintenance")}
+                >
+                  Under maintenance
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {error && (
             <p style={{ color: "red", fontSize: "14px" }}>{error}</p>
