@@ -1,6 +1,14 @@
-
 import React, { useState } from "react";
 import "./BorrowModal.css";
+
+const getLocalDate = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
 
 function BorrowModal({ equipment, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -20,12 +28,13 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-
+    const { name, value } = e.target;
+    setFormData((previousData) => ({
+      ...previousData,
+      [name]: value,
+    }));
     setMessage("");
+    setMessageType("");
   };
 
   const handleSubmit = async (e) => {
@@ -37,17 +46,59 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
       return;
     }
 
+    const quantity = Number(formData.quantity);
+
+    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+      setMessage("Quantity must be a whole number of at least 1.");
+      setMessageType("error");
+      return;
+    }
+
+    const availableQuantity = Number(equipment.quantity_available);
+
+    if (
+      Number.isFinite(availableQuantity) &&
+      quantity > availableQuantity
+    ) {
+      setMessage("Requested quantity exceeds the available quantity.");
+      setMessageType("error");
+      return;
+    }
+
+    if (
+      !formData.startDate ||
+      !formData.endDate ||
+      !formData.startTime ||
+      !formData.endTime
+    ) {
+      setMessage("Please complete the borrowing dates and times.");
+      setMessageType("error");
+      return;
+    }
+
+    if (formData.startDate < getLocalDate()) {
+      setMessage("Start date cannot be in the past.");
+      setMessageType("error");
+      return;
+    }
+
     if (formData.endDate < formData.startDate) {
       setMessage("End date cannot be earlier than start date.");
       setMessageType("error");
       return;
     }
 
-    if (
-      formData.startDate === formData.endDate &&
-      formData.endTime <= formData.startTime
-    ) {
-      setMessage("End time must be later than start time.");
+    const startDateTime = `${formData.startDate}T${formData.startTime}`;
+    const endDateTime = `${formData.endDate}T${formData.endTime}`;
+
+    if (endDateTime <= startDateTime) {
+      setMessage("End date and time must be later than the start date and time.");
+      setMessageType("error");
+      return;
+    }
+
+    if (!formData.purpose.trim()) {
+      setMessage("Please enter the purpose for borrowing this equipment.");
       setMessageType("error");
       return;
     }
@@ -72,12 +123,12 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
         },
         body: JSON.stringify({
           equipmentId: equipment.id,
-          quantity: Number(formData.quantity),
+          quantity,
           startDate: formData.startDate,
           endDate: formData.endDate,
           startTime: formData.startTime,
           endTime: formData.endTime,
-          purpose: formData.purpose,
+          purpose: formData.purpose.trim(),
           location: formData.location,
           fulfillmentType: formData.fulfillmentType,
         }),
@@ -96,7 +147,6 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
       if (onSuccess) {
         onSuccess(data.request);
       }
-      
     } catch (error) {
       setMessage(
         error.message || "Unable to submit request. Please try again."
@@ -109,10 +159,7 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-content"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{equipment?.name || "Equipment Name"}</h2>
 
@@ -133,7 +180,8 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
               type="number"
               name="quantity"
               min="1"
-              max={equipment?.quantity_available || undefined}
+              max={equipment?.quantity_available ?? undefined}
+              step="1"
               value={formData.quantity}
               onChange={handleChange}
               disabled={submitted}
@@ -141,9 +189,7 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
             />
 
             {equipment?.quantity_available != null && (
-              <small>
-                Available: {equipment.quantity_available}
-              </small>
+              <small>Available: {equipment.quantity_available}</small>
             )}
           </div>
 
@@ -155,7 +201,7 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-                min={new Date().toLocaleDateString("en-CA")}
+                min={getLocalDate()}
                 disabled={submitted}
                 required
               />
@@ -168,8 +214,8 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
-                min={formData.startDate || new Date().toLocaleDateString("en-CA")}
-                disabled={submitted || !formData.startDate}
+                min={formData.startDate || getLocalDate()}
+                disabled={submitted}
                 required
               />
             </div>
@@ -183,7 +229,7 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="startTime"
                 value={formData.startTime}
                 onChange={handleChange}
-                disabled={submitted || !formData.startDate}
+                disabled={submitted}
                 required
               />
             </div>
@@ -195,10 +241,7 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="endTime"
                 value={formData.endTime}
                 onChange={handleChange}
-                disabled={submitted || 
-                  !formData.startDate || 
-                  !formData.startTime 
-                  }
+                disabled={submitted}
                 required
               />
             </div>
@@ -245,7 +288,9 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
 
           {message && (
             <div className={`form-message ${messageType}`} role="status">
-              {submitted ? (<strong> Borrowing Request Submitted Successfully!</strong>) : (
+              {submitted ? (
+                <strong>Borrowing Request Submitted Successfully!</strong>
+              ) : (
                 message
               )}
             </div>
@@ -266,11 +311,11 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
               className="btn-save"
               disabled={loading || submitted}
             >
-              {submitted 
-              ? "Request Submitted"
-              : loading
-              ? "Submitting..." 
-              : "Submit Request"}
+              {submitted
+                ? "Request Submitted"
+                : loading
+                  ? "Submitting..."
+                  : "Submit Request"}
             </button>
           </div>
         </form>

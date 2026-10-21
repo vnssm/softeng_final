@@ -19,7 +19,9 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
         description: facility.description || "",
         capacity: facility.capacity || "",
         location: facility.location || "",
-        status: facility.is_available ? "Available" : "Unavailable",
+        status:
+          facility.condition_status ||
+          (Number(facility.is_available) === 1 ? "Available" : "Unavailable"),
       });
     }
   }, [facility, isAddMode]);
@@ -29,12 +31,39 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
   };
 
   const setStatus = (status) => {
-    setFormData({ ...formData, status });
+    setFormData((currentFormData) => ({ ...currentFormData, status }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    const name = formData.name.trim();
+    const capacity = formData.capacity === "" ? null : Number(formData.capacity);
+    if (!name) {
+      setError("Facility name is required.");
+      return;
+    }
+    if (name.length > 150) {
+      setError("Facility name must be 150 characters or fewer.");
+      return;
+    }
+    if (new TextEncoder().encode(formData.description.trim()).length > 65535) {
+      setError("Description is too long.");
+      return;
+    }
+    if (
+      capacity !== null &&
+      (!Number.isInteger(capacity) || capacity < 1 || capacity > 2147483647)
+    ) {
+      setError("Capacity must be a positive whole number.");
+      return;
+    }
+    if (!["Available", "Unavailable", "Under maintenance"].includes(formData.status)) {
+      setError("Select a valid facility status.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -51,7 +80,14 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name,
+          description: formData.description.trim(),
+          capacity,
+          location: formData.location.trim(),
+          condition_status: formData.status,
+          is_available: formData.status === "Available" ? 1 : 0,
+        }),
       });
 
       const data = await res.json();
@@ -87,6 +123,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
               value={formData.name}
               onChange={handleChange}
               placeholder="Enter facility name"
+              maxLength={150}
               required
             />
           </div>
@@ -111,6 +148,8 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
               onChange={handleChange}
               placeholder="e.g. 200"
               min="1"
+              max="2147483647"
+              step="1"
             />
           </div>
 
@@ -122,6 +161,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
               value={formData.location}
               onChange={handleChange}
               placeholder="e.g. Main Campus"
+              maxLength={150}
             />
           </div>
 
@@ -130,6 +170,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
             <div className="status-buttons">
               <button
                 type="button"
+                aria-pressed={formData.status === "Available"}
                 className={`status-btn ${formData.status === "Available" ? "active" : ""}`}
                 onClick={() => setStatus("Available")}
               >
@@ -137,6 +178,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
               </button>
               <button
                 type="button"
+                aria-pressed={formData.status === "Unavailable"}
                 className={`status-btn ${formData.status === "Unavailable" ? "active" : ""}`}
                 onClick={() => setStatus("Unavailable")}
               >
@@ -144,6 +186,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
               </button>
               <button
                 type="button"
+                aria-pressed={formData.status === "Under maintenance"}
                 className={`status-btn ${formData.status === "Under maintenance" ? "active" : ""}`}
                 onClick={() => setStatus("Under maintenance")}
               >

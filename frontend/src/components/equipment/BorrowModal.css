@@ -66,12 +66,25 @@
 .form-group select,
 .form-group textarea {
   width: 100%;
+  min-width: 0;
   padding: 10px 12px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
+}
+
+.form-group input[type="date"],
+.form-group input[type="time"] {
+  color-scheme: light;
+  cursor: pointer;
+}
+
+.form-group input[type="date"]::-webkit-calendar-picker-indicator {
+  display: block;
+  opacity: 1;
+  cursor: pointer;
 }
 
 .form-group input:focus,

@@ -2,20 +2,35 @@
 const pool = require("../config/db");
 const saveAuditLog = require("../utils/auditLogger");
 
+const respondToFacilityError = (error, res, operation) => {
+  console.error(`${operation} error:`, error);
+
+  if (
+    error.code === "ER_BAD_FIELD_ERROR" &&
+    /condition_status/i.test(error.sqlMessage || "")
+  ) {
+    return res.status(503).json({
+      message:
+        "Facility condition support is not installed in the database. Apply backend/migrations/20261021_add_facility_condition_status.sql, then try again.",
+    });
+  }
+
+  return res.status(500).json({ message: "Server error" });
+};
+
 // GET ALL FACILITIES
 exports.getAllFacilities = async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT id, name, description, capacity, location,
-              is_available, is_active
+              is_available, condition_status, is_active
        FROM facilities
        ORDER BY name ASC`
     );
 
     res.status(200).json(rows);
   } catch (error) {
-    console.error("Get facilities error:", error);
-    res.status(500).json({ message: "Server error" });
+    respondToFacilityError(error, res, "Get facilities");
   }
 };
 
@@ -45,43 +60,100 @@ exports.getFacilityById = async (req, res) => {
 // CREATE FACILITY
 exports.createFacility = async (req, res) => {
   try {
+    const body = req.body || {};
     const {
-      name,
       description,
       capacity,
       location,
-      is_available = 1,
-    } = req.body;
+    } = body;
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const requestedAvailability = body.is_available ?? 1;
 
     if (!name) {
       return res.status(400).json({
-        message: "Facility name is required",
+        message: "Facility name is required.",
       });
     }
 
+    if (name.length > 150) {
+      return res.status(400).json({
+        message: "Facility name must be 150 characters or fewer.",
+      });
+    }
+
+    const numericCapacity = capacity === "" || capacity == null
+      ? null
+      : Number(capacity);
     if (
-      capacity !== undefined &&
-      capacity !== null &&
-      capacity !== "" &&
-      (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)
+      numericCapacity !== null &&
+      (!Number.isInteger(numericCapacity) ||
+        numericCapacity < 1 ||
+        numericCapacity > 2147483647)
     ) {
       return res.status(400).json({
-        message: "Capacity must be a positive whole number",
+        message: "Capacity must be a positive whole number.",
+      });
+    }
+
+    for (const [field, value, maxLength] of [
+      ["Location", location, 150],
+    ]) {
+      if (value != null && typeof value !== "string") {
+        return res.status(400).json({
+          message: `${field} must be text.`,
+        });
+      }
+      if (typeof value === "string" && value.trim().length > maxLength) {
+        return res.status(400).json({
+          message: `${field} must be ${maxLength} characters or fewer.`,
+        });
+      }
+    }
+
+    if (description != null && typeof description !== "string") {
+      return res.status(400).json({
+        message: "Description must be text.",
+      });
+    }
+    if (
+      description != null &&
+      Buffer.byteLength(description.trim(), "utf8") > 65535
+    ) {
+      return res.status(400).json({
+        message: "Description is too long.",
+      });
+    }
+
+    if (![0, 1, "0", "1", false, true].includes(requestedAvailability)) {
+      return res.status(400).json({
+        message: "Select a valid facility availability status.",
+      });
+    }
+
+    const conditionStatus =
+      body.condition_status ??
+      (Number(requestedAvailability) === 1 ? "Available" : "Unavailable");
+    if (
+      !["Available", "Unavailable", "Under maintenance"].includes(
+        conditionStatus
+      )
+    ) {
+      return res.status(400).json({
+        message: "Select a valid facility condition.",
       });
     }
 
     const [result] = await pool.query(
       `INSERT INTO facilities
-        (name, description, capacity, location, is_available, is_active)
-       VALUES (?, ?, ?, ?, ?, 1)`,
+        (name, description, capacity, location, is_available, condition_status, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, 1)`,
       [
         name,
-        description || null,
-        capacity === "" || capacity == null
-          ? null
-          : Number(capacity),
-        location || null,
-        Number(is_available) === 1 ? 1 : 0,
+        description?.trim() || null,
+        numericCapacity,
+        location?.trim() || null,
+        conditionStatus === "Available" ? 1 : 0,
+        conditionStatus,
       ]
     );
 
@@ -101,7 +173,8 @@ exports.createFacility = async (req, res) => {
         description,
         capacity,
         location,
-        is_available,
+        is_available: conditionStatus === "Available" ? 1 : 0,
+        condition_status: conditionStatus,
         is_active: 1,
       }
     );
@@ -111,8 +184,7 @@ exports.createFacility = async (req, res) => {
       id: result.insertId,
     });
   } catch (error) {
-    console.error("Create facility error:", error);
-    res.status(500).json({ message: "Server error" });
+    respondToFacilityError(error, res, "Create facility");
   }
 };
 
@@ -127,8 +199,29 @@ exports.updateFacility = async (req, res) => {
       capacity,
       location,
       is_available,
+      condition_status,
       is_active,
     } = req.body;
+
+    if (
+      condition_status !== undefined &&
+      !["Available", "Unavailable", "Under maintenance"].includes(
+        condition_status
+      )
+    ) {
+      return res.status(400).json({
+        message: "Select a valid facility condition.",
+      });
+    }
+
+    if (
+      is_available !== undefined &&
+      ![0, 1, "0", "1", false, true].includes(is_available)
+    ) {
+      return res.status(400).json({
+        message: "Select a valid facility availability status.",
+      });
+    }
 
     if (
       capacity !== undefined &&
@@ -153,6 +246,19 @@ exports.updateFacility = async (req, res) => {
     }
 
     const oldValues = existingRows[0];
+    const nextConditionStatus =
+      condition_status ??
+      (is_available === undefined
+        ? undefined
+        : Number(is_available) === 1
+        ? "Available"
+        : "Unavailable");
+    const nextAvailability =
+      nextConditionStatus === undefined
+        ? null
+        : nextConditionStatus === "Available"
+        ? 1
+        : 0;
 
     await pool.query(
       `UPDATE facilities SET
@@ -160,6 +266,7 @@ exports.updateFacility = async (req, res) => {
         description = COALESCE(?, description),
         capacity = COALESCE(?, capacity),
         location = COALESCE(?, location),
+        condition_status = COALESCE(?, condition_status),
         is_available = COALESCE(?, is_available),
         is_active = COALESCE(?, is_active)
        WHERE id = ?`,
@@ -168,11 +275,8 @@ exports.updateFacility = async (req, res) => {
         description ?? null,
         capacity === "" ? null : capacity ?? null,
         location ?? null,
-        is_available === undefined
-          ? null
-          : Number(is_available) === 1
-          ? 1
-          : 0,
+        nextConditionStatus ?? null,
+        nextAvailability,
         is_active === undefined
           ? null
           : Number(is_active) === 1
@@ -201,6 +305,10 @@ exports.updateFacility = async (req, res) => {
     ) {
       action = "Facility Deactivated";
     } else if (
+      oldValues.condition_status !== newValues.condition_status
+    ) {
+      action = "Facility Condition Changed";
+    } else if (
       Number(oldValues.is_available) !== Number(newValues.is_available)
     ) {
       action = "Facility Availability Changed";
@@ -219,7 +327,6 @@ exports.updateFacility = async (req, res) => {
       message: "Facility updated successfully",
     });
   } catch (error) {
-    console.error("Update facility error:", error);
-    res.status(500).json({ message: "Server error" });
+    respondToFacilityError(error, res, "Update facility");
   }
 };

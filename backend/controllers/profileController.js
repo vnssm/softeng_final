@@ -148,17 +148,69 @@ exports.getMyProfile = async (req, res) => {
       [userId]
     );
 
-    // Get recent recorded activities
+    // Include audited staff actions as well as borrower activity entries.
     const [activityRows] = await db.query(
-      `SELECT
-         action_type,
-         description,
-         created_at
-       FROM activity_logs
-       WHERE user_id = ?
-       ORDER BY created_at DESC
+      `SELECT action_type, description, created_at
+       FROM (
+         SELECT id, action_type, description, created_at
+         FROM activity_logs
+         WHERE user_id = ?
+
+         UNION ALL
+
+         SELECT id,
+                action AS action_type,
+                CASE
+                  WHEN table_name IS NULL THEN action
+                  WHEN record_id IS NULL THEN CONCAT(action, ' (', table_name, ')')
+                  ELSE CONCAT(action, ' (', table_name, ' #', record_id, ')')
+                END AS description,
+                created_at
+         FROM audit_logs
+         WHERE user_id = ?
+           AND action NOT IN (
+             'User Login',
+             'User Logout',
+             'Failed Login Attempt'
+           )
+
+         UNION ALL
+
+         SELECT r.id,
+                'request_approved' AS action_type,
+                CONCAT('Approved request ', r.request_code) AS description,
+                COALESCE(r.approved_at, r.updated_at) AS created_at
+         FROM requests r
+         WHERE r.approved_by = ?
+           AND NOT EXISTS (
+             SELECT 1
+             FROM activity_logs a
+             WHERE a.user_id = ?
+               AND a.action_type = 'request_approved'
+               AND a.related_type = 'request'
+               AND a.related_id = r.id
+           )
+
+         UNION ALL
+
+         SELECT r.id,
+                'return_inspected' AS action_type,
+                CONCAT('Inspected the return for request ', r.request_code) AS description,
+                COALESCE(r.returned_at, r.updated_at) AS created_at
+         FROM requests r
+         WHERE r.inspected_by = ?
+           AND NOT EXISTS (
+             SELECT 1
+             FROM activity_logs a
+             WHERE a.user_id = ?
+               AND a.action_type = 'return_inspected'
+               AND a.related_type = 'request'
+               AND a.related_id = r.id
+           )
+       ) AS recent_activities
+       ORDER BY created_at DESC, id DESC
        LIMIT 5`,
-      [userId]
+      [userId, userId, userId, userId, userId, userId]
     );
 
     return res.status(200).json({

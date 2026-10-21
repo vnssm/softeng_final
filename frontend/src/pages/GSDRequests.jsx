@@ -59,6 +59,10 @@ function isPastEndDateTime(item) {
     endDateTime < new Date();
 }
 
+function isCompletedReturn(status) {
+  return status === "Completed" || status === "Completed With Issue";
+}
+
 function GSDRequests() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -529,9 +533,9 @@ const handleRejectSend = async () => {
                 {/* Returns → View (inspection) */}
                 {filter === "returns" && (
                   <button
-                    className={`view-btn ${item.status === "Completed" ? "disabled" : ""}`}
+                    className={`view-btn ${isCompletedReturn(item.status) ? "disabled" : ""}`}
                     onClick={() => openReturnModal(item)}
-                    disabled={item.status === "Completed"}
+                    disabled={isCompletedReturn(item.status)}
                   >
                     View
                   </button>
