@@ -45,19 +45,29 @@ function AdminFacilities() {
   }, []);
 
   const getStatus = (facility) => {
-    if (!facility.is_active || !facility.is_available) {
+    if (Number(facility.is_active) !== 1) {
       return "Unavailable";
     }
 
-    return "Available";
+    if (
+      ["Available", "Unavailable", "Under maintenance"].includes(
+        facility.condition_status
+      )
+    ) {
+      return facility.condition_status;
+    }
+
+    return Number(facility.is_available) === 1 ? "Available" : "Unavailable";
   };
 
   const getStatusClass = (status) => {
-    if (status === "Available") {
-      return "facility-status-available";
+    if (status === "Under maintenance") {
+      return "facility-status-maintenance";
     }
 
-    return "facility-status-unavailable";
+    return status === "Available"
+      ? "facility-status-available"
+      : "facility-status-unavailable";
   };
 
   const filtered = facilities.filter((facility) => {
@@ -120,6 +130,7 @@ function AdminFacilities() {
                 <option>All Status</option>
                 <option>Available</option>
                 <option>Unavailable</option>
+                <option>Under maintenance</option>
               </select>
             </div>
 

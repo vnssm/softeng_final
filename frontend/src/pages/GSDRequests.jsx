@@ -59,6 +59,10 @@ function isPastEndDateTime(item) {
     endDateTime < new Date();
 }
 
+function isCompletedReturn(status) {
+  return status === "Completed" || status === "Completed With Issue";
+}
+
 function GSDRequests() {
   const navigate = useNavigate();
   const location = useLocation();

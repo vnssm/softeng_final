@@ -31,12 +31,47 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
   };
 
   const setStatus = (status) => {
-    setFormData({ ...formData, condition_status: status });
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      condition_status: status,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    const name = formData.name.trim();
+    const quantity = Number(formData.quantity_total);
+    if (!name) {
+      setError("Equipment name is required.");
+      return;
+    }
+    if (name.length > 150) {
+      setError("Equipment name must be 150 characters or fewer.");
+      return;
+    }
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 2147483647) {
+      setError("Quantity must be a positive whole number.");
+      return;
+    }
+    if (formData.category.trim().length > 100) {
+      setError("Category must be 100 characters or fewer.");
+      return;
+    }
+    if (formData.location.trim().length > 150) {
+      setError("Location must be 150 characters or fewer.");
+      return;
+    }
+    if (new TextEncoder().encode(formData.description.trim()).length > 65535) {
+      setError("Description is too long.");
+      return;
+    }
+    if (!["Good", "Needs Repair", "Damaged"].includes(formData.condition_status)) {
+      setError("Select a valid equipment condition.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -53,7 +88,13 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          name,
+          quantity_total: quantity,
+          category: formData.category.trim(),
+          location: formData.location.trim(),
+        }),
       });
 
       const data = await res.json();
@@ -92,6 +133,7 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
               value={formData.name}
               onChange={handleChange}
               placeholder="Enter equipment name"
+              maxLength={150}
               required
             />
           </div>
@@ -115,6 +157,7 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
               value={formData.category}
               onChange={handleChange}
               placeholder="e.g. AV Equipment, Furniture"
+              maxLength={100}
             />
           </div>
 
@@ -126,6 +169,8 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
               value={formData.quantity_total}
               onChange={handleChange}
               min="1"
+              max="2147483647"
+              step="1"
               required
             />
           </div>
@@ -138,6 +183,7 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
               value={formData.location}
               onChange={handleChange}
               placeholder="e.g. GSD Storage Room"
+              maxLength={150}
             />
           </div>
 
@@ -146,24 +192,27 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
             <div className="status-buttons">
               <button
                 type="button"
+                aria-pressed={formData.condition_status === "Good"}
                 className={`status-btn ${
                   formData.condition_status === "Good" ? "active" : ""
                 }`}
                 onClick={() => setStatus("Good")}
               >
-                Available (Good)
+                Good
               </button>
               <button
                 type="button"
+                aria-pressed={formData.condition_status === "Needs Repair"}
                 className={`status-btn ${
                   formData.condition_status === "Needs Repair" ? "active" : ""
                 }`}
                 onClick={() => setStatus("Needs Repair")}
               >
-                Under maintenance
+                Needs Repair
               </button>
               <button
                 type="button"
+                aria-pressed={formData.condition_status === "Damaged"}
                 className={`status-btn ${
                   formData.condition_status === "Damaged" ? "active" : ""
                 }`}

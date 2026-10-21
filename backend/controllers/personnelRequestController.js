@@ -167,6 +167,19 @@ exports.approveRequest = async (req, res) => {
       [req.user.id, requestId]
     );
 
+    await connection.query(
+      `INSERT INTO activity_logs
+        (user_id, action_type, description, related_type, related_id)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        req.user.id,
+        "request_approved",
+        "Approved request " + request.request_code,
+        "request",
+        request.id
+      ]
+    );
+
     // Create an assignment for equipment requests
     if (request.request_type === "equipment") {
       const assignmentType =
@@ -292,6 +305,19 @@ exports.rejectRequest = async (req, res) => {
       [rejectionReason, requestId]
     );
 
+    await connection.query(
+      `INSERT INTO activity_logs
+        (user_id, action_type, description, related_type, related_id)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        req.user.id,
+        "request_rejected",
+        "Rejected request " + request.request_code,
+        "request",
+        request.id
+      ]
+    );
+
     // Notify the borrower
     await connection.query(
       `INSERT INTO notifications
@@ -412,6 +438,19 @@ exports.inspectReturn = async (req, res) => {
       ]
     );
 
+    await connection.query(
+      `INSERT INTO activity_logs
+        (user_id, action_type, description, related_type, related_id)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        req.user.id,
+        "return_inspected",
+        "Inspected the return for request " + request.request_code,
+        "request",
+        request.id
+      ]
+    );
+
     // Notify the borrower when damage or issues are found.
     if (newStatus === "completed_with_issue") {
       const message =
@@ -465,6 +504,5 @@ exports.inspectReturn = async (req, res) => {
     }
   }
 };
-
 
 

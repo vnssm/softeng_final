@@ -55,15 +55,6 @@ function GSDEquipment() {
     fetchEquipment(); // refresh list
   };
 
-  const getStatusLabel = (item) => {
-    if (!item.is_active) return "Unavailable";
-    if (item.condition_status === "Needs Repair" || item.condition_status === "Damaged") {
-      return "Under maintenance";
-    }
-    if (item.quantity_available <= 0) return "Unavailable";
-    return "Available";
-  };
-
   if (loading) {
     return (
       <div className="personnel-equipment">
@@ -100,6 +91,9 @@ function GSDEquipment() {
               <div className="equipment-name">{item.name}</div>
               <div className="equipment-meta">
                 Available: {item.quantity_available} / {item.quantity_total}
+              </div>
+              <div className="equipment-condition">
+                Condition: {item.condition_status || "Unknown"}
               </div>
 
               <button

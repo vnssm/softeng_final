@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaLayerGroup, FaMapMarkerAlt } from "react-icons/fa";
 import "./Assignments.css";
 
 function Assignments() {
@@ -31,26 +32,41 @@ function Assignments() {
         }
 
         const formattedAssignments = (data.assignments || []).map(
-          (item) => ({
-            ...item,
-            transactionStatus: (
-              item.transaction_status || ""
-            ).toLowerCase(),
-            assignmentStatus: (
-              item.assignment_status || "pending"
-            ).toLowerCase(),
-            requestId: item.request_code || item.request_id || "N/A",
-            time: item.scheduled_time
-              ? new Date(item.scheduled_time).toLocaleString()
-              : "Not scheduled",
-            type:
-              item.request_type === "facility"
-                ? "Facility"
-                : "Equipment",
-            fulfillmentType: (
-              item.fulfillment_type || ""
-            ).toLowerCase(),
-          })
+          (item) => {
+            const scheduledTime =
+              item.scheduled_time ||
+              (item.date_needed && item.time_start
+                ? `${String(item.date_needed).slice(0, 10)}T${item.time_start}`
+                : null);
+
+            return {
+              ...item,
+              name:
+                item.facility_name ||
+                item.equipment_names ||
+                item.title ||
+                `${item.request_type === "facility" ? "Facility" : "Equipment"} Request`,
+              transactionStatus: (
+                item.transaction_status || ""
+              ).toLowerCase(),
+              assignmentStatus: (
+                item.assignment_status || "pending"
+              ).toLowerCase(),
+              requestId: item.request_code || item.request_id || "N/A",
+              time: scheduledTime
+                ? new Date(
+                    String(scheduledTime).replace(" ", "T")
+                  ).toLocaleString()
+                : "Not scheduled",
+              type:
+                item.request_type === "facility"
+                  ? "Facility"
+                  : "Equipment",
+              fulfillmentType: (
+                item.fulfillment_type || ""
+              ).toLowerCase(),
+            };
+          }
         );
 
         setAssignments(formattedAssignments);
@@ -103,16 +119,36 @@ function Assignments() {
     );
   };
 
-  const getFulfillmentLabel = (item) => {
-    if (item.fulfillmentType === "pickup") {
-      return "Pickup";
-    }
+  const getStatusClass = (item) => {
+    if (item.transactionStatus === "approved") return "assigned";
+    if (item.transactionStatus === "overdue") return "due";
 
-    if (item.fulfillmentType === "delivery") {
-      return "Delivery";
-    }
+    return (item.transactionStatus || item.assignmentStatus)
+      .replace(/_/g, "-")
+      .replace(/\s+/g, "-");
+  };
 
-    return "";
+  const isCompleted = (item) => {
+    const completedStatuses = ["completed", "completed_with_issue"];
+    return completedStatuses.includes(item.transactionStatus) ||
+      completedStatuses.includes(item.assignmentStatus);
+  };
+
+  const openAssignment = (item) => {
+    const status = item.transactionStatus;
+    const filter = status === "pending"
+      ? "pending"
+      : ["returned", "completed", "completed_with_issue"].includes(status)
+        ? "returns"
+        : status === "overdue"
+          ? "overdue"
+          : "approved";
+
+    navigate(`/personnel-requests?filter=${filter}`, {
+      state: filter === "pending"
+        ? { openRequestId: item.transaction_id }
+        : undefined,
+    });
   };
 
   return (
@@ -148,68 +184,50 @@ function Assignments() {
           </div>
         ) : (
           filteredAssignments.map((item) => {
-            const fulfillmentLabel = getFulfillmentLabel(item);
-            const isAssigned =
-              item.transactionStatus === "approved";
-            const statusClass = isAssigned
-              ? "assigned"
-              : item.transactionStatus === "overdue"
-                ? "due"
-                : item.transactionStatus;
-
             return (
               <div
                 key={`${item.transaction_id || item.request_id}-${item.id || "unassigned"}`}
                 className="assignment-card"
               >
-                <div className="assignment-left">
-                  <div className="assignment-title">
-                    {item.title ||
-                      `${item.type} Request`}
-                  </div>
-
-                  <div className="assignment-meta">
-                    <span>Request #{item.requestId}</span>
-                    <span>•</span>
-                    <span>{item.time}</span>
-                    <span>•</span>
-                    <span>
-                      {item.location || "No location specified"}
-                    </span>
-                  </div>
-
-                  <div className="assignment-type">
-                    {item.type}
-                  </div>
+                <div className="assignment-card-top">
+                  <h3 className="assignment-card-title">{item.name}</h3>
+                  <button
+                    type="button"
+                    className={`assignment-view-btn ${isCompleted(item) ? "disabled" : ""}`}
+                    disabled={isCompleted(item)}
+                    onClick={() => openAssignment(item)}
+                  >
+                    View
+                  </button>
                 </div>
 
-                
-                <div className="assignment-right">
-                  <span className={`status ${statusClass}`}>
+                <div className="assignment-card-details">
+                  <p>
+                    <FaLayerGroup className="assignment-detail-icon" />
+                    Purpose: {item.purpose || "No purpose provided"}
+                  </p>
+                  <p>
+                    <FaMapMarkerAlt className="assignment-detail-icon" />
+                    Location: {item.location || "Not specified"}
+                  </p>
+                  {item.time !== "Not scheduled" && (
+                    <p>
+                      <span className="assignment-detail-icon assignment-schedule-icon" />
+                      Schedule: {item.time}
+                    </p>
+                  )}
+                </div>
+
+                <div className="assignment-card-divider" />
+
+                <div className="assignment-card-bottom">
+                  <span className="assignment-requested-by">
+                    By {item.borrower_name || "Unknown Borrower"}
+                  </span>
+                  <span className={`assignment-status-badge ${getStatusClass(item)}`}>
+                    <span className="assignment-status-dot" />
                     {getStatusLabel(item)}
                   </span>
-
-                  {isAssigned && fulfillmentLabel && (
-                    <div className="assignment-fulfillment">
-                      {fulfillmentLabel}
-                    </div>
-                  )}
-
-                  {item.transactionStatus === "pending" && (
-                    <button
-                      type="button"
-                      className="assignment-view-btn"
-                      onClick={() =>
-                        navigate("/personnel-requests?filter=pending", {
-                          state: {
-                            openRequestId: item.transaction_id,
-                          },
-                        })
-                      }
-                    >
-                      View
-                    </button>
-                  )}
                 </div>
               </div>
             );

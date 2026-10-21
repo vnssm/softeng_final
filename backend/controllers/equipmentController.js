@@ -43,18 +43,75 @@ exports.getEquipmentById = async (req, res) => {
 // CREATE EQUIPMENT
 exports.createEquipment = async (req, res) => {
   try {
+    const body = req.body || {};
     const {
-      name,
       description,
       category,
       quantity_total,
       location,
       condition_status = "Good",
-    } = req.body;
+    } = body;
+    const name = typeof body.name === "string" ? body.name.trim() : "";
 
-    if (!name || !quantity_total) {
+    if (!name) {
       return res.status(400).json({
-        message: "Name and quantity are required",
+        message: "Equipment name is required.",
+      });
+    }
+
+    if (name.length > 150) {
+      return res.status(400).json({
+        message: "Equipment name must be 150 characters or fewer.",
+      });
+    }
+
+    const quantity = Number(quantity_total);
+    if (
+      quantity_total === undefined ||
+      quantity_total === null ||
+      quantity_total === "" ||
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > 2147483647
+    ) {
+      return res.status(400).json({
+        message: "Quantity must be a positive whole number.",
+      });
+    }
+
+    for (const [field, value, maxLength] of [
+      ["Category", category, 100],
+      ["Location", location, 150],
+    ]) {
+      if (value != null && typeof value !== "string") {
+        return res.status(400).json({
+          message: `${field} must be text.`,
+        });
+      }
+      if (typeof value === "string" && value.trim().length > maxLength) {
+        return res.status(400).json({
+          message: `${field} must be ${maxLength} characters or fewer.`,
+        });
+      }
+    }
+
+    if (description != null && typeof description !== "string") {
+      return res.status(400).json({
+        message: "Description must be text.",
+      });
+    }
+    if (
+      description != null &&
+      Buffer.byteLength(description.trim(), "utf8") > 65535
+    ) {
+      return res.status(400).json({
+        message: "Description is too long.",
+      });
+    }
+
+    if (!["Good", "Needs Repair", "Damaged"].includes(condition_status)) {
+      return res.status(400).json({
+        message: "Select a valid equipment condition.",
       });
     }
 
@@ -65,12 +122,12 @@ exports.createEquipment = async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         name,
-        description || null,
-        category || null,
-        quantity_total,
-        quantity_total,
+        description?.trim() || null,
+        category?.trim() || null,
+        quantity,
+        quantity,
         condition_status,
-        location || null,
+        location?.trim() || null,
       ]
     );
 
@@ -134,6 +191,15 @@ exports.updateEquipment = async (req, res) => {
     }
 
     const oldValues = existingRows[0];
+
+    if (
+      condition_status !== undefined &&
+      !["Good", "Needs Repair", "Damaged"].includes(condition_status)
+    ) {
+      return res.status(400).json({
+        message: "Select a valid equipment condition.",
+      });
+    }
 
     await pool.query(
       `UPDATE equipment SET
