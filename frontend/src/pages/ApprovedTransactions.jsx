@@ -1,6 +1,13 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import "./ApprovedTransactions.css";
+
+const APPROVED_STATUSES = new Set([
+  "approved",
+  "for_delivery",
+  "for_pickup",
+  "ongoing",
+]);
 
 function ApprovedTransactions() {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -8,11 +15,7 @@ function ApprovedTransactions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadTransactions();
-  }, []);
-
-  const loadTransactions = async () => {
+  const loadTransactions = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -25,6 +28,7 @@ function ApprovedTransactions() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          cache: "no-store",
         }
       );
 
@@ -38,10 +42,8 @@ function ApprovedTransactions() {
         ? data
         : data.requests || [];
 
-      // Show approved requests only.
-      const approvedRequests = requests.filter(
-        (request) =>
-          String(request.status || "").toLowerCase() === "approved"
+      const approvedRequests = requests.filter((request) =>
+        APPROVED_STATUSES.has(String(request.status || "").toLowerCase())
       );
 
       setTransactions(approvedRequests);
@@ -50,7 +52,26 @@ function ApprovedTransactions() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        loadTransactions();
+      }
+    };
+
+    loadTransactions();
+    window.addEventListener("focus", refreshWhenVisible);
+    window.addEventListener("request-status-updated", loadTransactions);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshWhenVisible);
+      window.removeEventListener("request-status-updated", loadTransactions);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [loadTransactions]);
 
   const filteredTransactions = transactions.filter((item) => {
     const requestType = String(
@@ -211,6 +232,9 @@ function ApprovedTransactions() {
               item.college_department || item.college || "";
 
             const requestType = getRequestType(item);
+            const statusLabel = String(item.status || "approved")
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
             const dateNeeded =
               item.date_needed || item.dateNeeded;
@@ -268,7 +292,7 @@ function ApprovedTransactions() {
                   </span>
 
                   <span className="approved-status-badge">
-                    Approved
+                    {statusLabel}
                   </span>
                 </div>
               </div>

@@ -1,61 +1,103 @@
 .navbar {
   width: 100%;
-  height: 72px;
+  min-height: 72px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding: 0 30px;
+  gap: 8px 12px;
+  padding: 0 clamp(12px, 2.5vw, 30px);
   background: #ffffff;
   border-bottom: 4px solid #075b0a;
   box-sizing: border-box;
 }
 
+
+
+
 /* ================================
    LEFT
 ================================ */
 
+
+
+
 .navbar-left {
   display: flex;
   align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
 }
+
+
+
 
 .navbar-brand {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
   text-decoration: none;
   color: inherit;
+  cursor: default;
 }
 
+
+
+
 .navbar-logo {
+  flex-shrink: 0;
   width: 48px;
   height: 48px;
   object-fit: contain;
 }
 
+
+
+
 .navbar-title {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   line-height: 1.2;
 }
+
+
+
 
 .navbar-title-main {
   color: #075b0a;
   font-size: 16px;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+
+
 
 .navbar-title-sub {
   margin-top: 2px;
   color: #777;
   font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+
+
 
 /* ================================
    SIDEBAR BUTTON
 ================================ */
 
+
+
+
 .sidebar-button {
+  flex-shrink: 0;
   width: 40px;
   height: 40px;
   display: flex;
@@ -69,19 +111,31 @@
   cursor: pointer;
 }
 
+
+
+
 .sidebar-button:hover {
   color: #075b0a;
 }
 
+
+
+
 /* ================================
    RIGHT
 ================================ */
+
+
+
 
 .navbar-right {
   display: flex;
   align-items: center;
   gap: 16px;
 }
+
+
+
 
 .navbar-link {
   color: #444;
@@ -90,13 +144,20 @@
   text-decoration: none;
   padding: 8px 14px;
   border-radius: 6px;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
+
+
+
 
 .navbar-link:hover {
   color: #075b0a;
   background: #f0f7f0;
 }
+
+
+
 
 /* Active state - little box highlight */
 .navbar-link.active {
@@ -105,9 +166,15 @@
   font-weight: 600;
 }
 
+
+
+
 /* ================================
    DIVIDER
 ================================ */
+
+
+
 
 .navbar-divider {
   width: 2px;
@@ -117,9 +184,15 @@
   margin-right: 8px;
 }
 
+
+
+
 /* ================================
    NOTIFICATION
 ================================ */
+
+
+
 
 .notification {
   position: relative;
@@ -130,6 +203,9 @@
   height: 35px;
 }
 
+
+
+
 .notification-icon {
   position: relative;
   display: flex;
@@ -139,6 +215,9 @@
   color: #555;
   cursor: pointer;
 }
+
+
+
 
 .notification-dot {
   position: absolute;
@@ -151,13 +230,22 @@
   border-radius: 50%;
 }
 
+
+
+
 /* ================================
    PROFILE DROPDOWN
 ================================ */
 
+
+
+
 .profile-dropdown {
   position: relative;
 }
+
+
+
 
 .profile-button {
   display: flex;
@@ -169,6 +257,9 @@
   padding: 0;
   color: inherit;
 }
+
+
+
 
 .profile-circle {
   width: 46px;
@@ -187,10 +278,16 @@
   font-weight: 400;
 }
 
+
+
+
 .profile-arrow {
   font-size: 11px;
   color: #555;
 }
+
+
+
 
 /* Dropdown */
 .dropdown-menu {
@@ -207,6 +304,9 @@
   padding: 4px 0;
 }
 
+
+
+
 .dropdown-item {
   display: block;
   width: 100%;
@@ -221,9 +321,15 @@
   transition: background 0.15s ease;
 }
 
+
+
+
 .dropdown-item:hover {
   background: #f9fafb;
 }
+
+
+
 
 .dropdown-item.logout {
   color: #111827;
@@ -231,52 +337,15 @@
   letter-spacing: 0.3px;
 }
 
+
+
+
 .dropdown-item.logout:hover {
   background: #f9fafb;
 }
 
-/* ================================
-   MOBILE
-================================ */
 
-@media (max-width: 700px) {
-  .navbar {
-    height: auto;
-    min-height: 65px;
-    padding: 10px 15px;
-  }
 
-  .navbar-logo {
-    width: 40px;
-    height: 40px;
-  }
-
-  .navbar-title-main {
-    font-size: 13px;
-  }
-
-  .navbar-title-sub {
-    font-size: 8px;
-  }
-
-  .navbar-right {
-    gap: 12px;
-  }
-
-  .navbar-link {
-    display: none;
-  }
-
-  .navbar-divider {
-    display: none;
-  }
-
-  .profile-circle {
-    width: 40px;
-    height: 40px;
-    font-size: 14px;
-  }
-}
 
 /* Display the uploaded profile picture inside the navbar circle */
 .navbar-profile-image {
@@ -292,12 +361,190 @@
   flex-shrink: 0;
 }
 
-/* The brand displays the logo and title without acting like a link */
-.navbar-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  color: inherit;
-  cursor: default;
+
+
+
+/* ================================
+   ADAPTIVE
+================================ */
+@media (max-width: 1100px) {
+  .navbar-right {
+    gap: 10px;
+  }
+
+
+  .navbar-link {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+
+
+  .navbar-divider {
+    margin-left: 2px;
+    margin-right: 2px;
+  }
 }
+
+
+@media (max-width: 900px) {
+  .navbar-title-sub {
+    display: none;
+  }
+
+
+  .navbar-right {
+    gap: 6px;
+  }
+
+
+  .navbar-link {
+    padding: 8px 8px;
+    font-size: 13px;
+  }
+}
+
+
+@media (max-width: 700px) {
+  .navbar {
+    padding: 8px 15px;
+    justify-content: flex-start;
+  }
+
+
+  .navbar-right {
+    display: contents;
+  }
+
+
+
+
+  .navbar-left {
+    order: 1;
+  }
+
+
+  .notification {
+    order: 2;
+  }
+
+
+  .profile-dropdown {
+    order: 3;
+  }
+
+
+  .navbar-divider {
+    order: 4;
+    flex: 0 0 100%;
+    width: 100%;
+    height: 1px;
+    margin: 0;
+  }
+
+
+
+
+  .navbar-link {
+    order: 5;
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 14px;
+  }
+
+
+
+
+  .navbar-logo {
+    width: 40px;
+    height: 40px;
+  }
+
+
+
+
+  .navbar-title-main {
+    font-size: 13px;
+  }
+
+
+
+
+  .profile-circle {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 14px;
+  }
+}
+
+
+@media (max-width: 420px) {
+  .navbar {
+    padding: 6px 10px;
+    gap: 6px 8px;
+  }
+
+
+
+
+  .sidebar-button {
+    width: 34px;
+    height: 34px;
+    margin-right: 6px;
+    font-size: 20px;
+  }
+
+
+
+
+  .navbar-brand {
+    gap: 8px;
+  }
+
+
+
+
+  .navbar-logo {
+    width: 34px;
+    height: 34px;
+  }
+
+
+
+
+  .navbar-title-main {
+    font-size: 12px;
+  }
+
+
+
+
+  .profile-circle {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+
+
+
+  .navbar-link {
+    font-size: 13px;
+  }
+}
+
+
+
+
+@media (max-width: 320px) {
+  .navbar-title {
+    display: none;
+  }
+}
+
+
+

@@ -88,6 +88,7 @@ function GSDRequests() {
   const [rejectReason, setRejectReason] = useState("");
   const [assignedPersonnel, setAssignedPersonnel] = useState("");
   const [waiverFile, setWaiverFile] = useState(null);
+  const [approvalFieldErrors, setApprovalFieldErrors] = useState({});
 
   const [allRequests, setAllRequests] = useState([]);
 
@@ -177,6 +178,7 @@ function GSDRequests() {
       setRejectReason("");
       setAssignedPersonnel("");
       setWaiverFile(null);
+      setApprovalFieldErrors({});
 
       navigate(location.pathname + location.search, {
         replace: true,
@@ -197,13 +199,23 @@ function GSDRequests() {
       case "pending":
         return ["Pending", "Under Review"];
       case "approved":
-        return ["Approved"];
+        return ["Approved", "For Delivery", "For Pickup", "Ongoing"];
       case "returns":
         return ["Returned", "Completed", "Completed With Issue"];
       case "overdue":
         return ["Overdue"];
       default:
-        return ["Pending", "Under Review", "Rejected", "Approved", "Returned", "Completed"];
+        return [
+          "Pending",
+          "Under Review",
+          "Rejected",
+          "Approved",
+          "For Delivery",
+          "For Pickup",
+          "Ongoing",
+          "Returned",
+          "Completed",
+        ];
     }
   };
 
@@ -266,6 +278,9 @@ function GSDRequests() {
     setReturnState("");
     setInspectionNotes("");
   };
+
+  const isReturnComplete = (status) =>
+    ["Completed", "Completed With Issue"].includes(status);
 
   
   const handleSendReturn = async () => {
@@ -344,6 +359,7 @@ function GSDRequests() {
     setRejectReason("");
     setAssignedPersonnel("");
     setWaiverFile(null);
+    setApprovalFieldErrors({});
   };
 
   const closeApprovalModal = () => {
@@ -352,17 +368,31 @@ function GSDRequests() {
     setRejectReason("");
     setAssignedPersonnel("");
     setWaiverFile(null);
+    setApprovalFieldErrors({});
   };
 
   
   const handleApproveSave = async () => {
+    const fieldErrors = {};
+
+    if (!waiverFile) {
+      fieldErrors.waiverFile =
+        "Please upload the release document before approving.";
+    }
+
     if (!assignedPersonnel) {
-      setError("Please assign personnel.");
+      fieldErrors.assignedPersonnel =
+        "Please choose an employee to assign before approving.";
+    }
+
+    setApprovalFieldErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
       return;
     }
 
     try {
       setError("");
+      setApprovalFieldErrors({});
 
       const token = localStorage.getItem("token");
 
@@ -385,6 +415,8 @@ function GSDRequests() {
       if (!response.ok) {
         throw new Error(data.message || "Failed to approve request.");
       }
+
+      window.dispatchEvent(new Event("request-status-updated"));
 
       setAllRequests((prev) =>
         prev.map((req) =>
@@ -529,9 +561,9 @@ const handleRejectSend = async () => {
                 {/* Returns → View (inspection) */}
                 {filter === "returns" && (
                   <button
-                    className={`view-btn ${item.status === "Completed" ? "disabled" : ""}`}
+                    className={`view-btn ${isReturnComplete(item.status) ? "disabled" : ""}`}
                     onClick={() => openReturnModal(item)}
-                    disabled={item.status === "Completed"}
+                    disabled={isReturnComplete(item.status)}
                   >
                     View
                   </button>
@@ -683,13 +715,21 @@ const handleRejectSend = async () => {
               <div className="decision-btns">
                 <button
                   className={`decision-btn approve ${decision === "approve" ? "active" : ""}`}
-                  onClick={() => setDecision("approve")}
+                  onClick={() => {
+                    setDecision("approve");
+                    setError("");
+                    setApprovalFieldErrors({});
+                  }}
                 >
                   Approve
                 </button>
                 <button
                   className={`decision-btn reject ${decision === "reject" ? "active" : ""}`}
-                  onClick={() => setDecision("reject")}
+                  onClick={() => {
+                    setDecision("reject");
+                    setError("");
+                    setApprovalFieldErrors({});
+                  }}
                 >
                   Reject
                 </button>
@@ -699,15 +739,25 @@ const handleRejectSend = async () => {
               {decision === "approve" && (
                 <>
                   <div className="field">
+                    {approvalFieldErrors.waiverFile && (
+                      <p className="field-error" role="alert">
+                        {approvalFieldErrors.waiverFile}
+                      </p>
+                    )}
                     <label>Upload copy of release document</label>
                     <div className="upload-box">
                       <input
                         type="file"
                         id="waiver"
                         accept=".pdf,application/pdf"
+                        required
                         onChange={(e) => {const file = e.target.files[0]; 
                           if (!file){
                             setWaiverFile(null);
+                            setApprovalFieldErrors((previousErrors) => ({
+                              ...previousErrors,
+                              waiverFile: "",
+                            }));
                             return;
                           }
 
@@ -715,13 +765,19 @@ const handleRejectSend = async () => {
                             file.type !== "application/pdf" ||
                             !file.name.toLowerCase().endsWith(".pdf")
                           ) {
-                            setError("Please select a PDF document.");
+                            setApprovalFieldErrors((previousErrors) => ({
+                              ...previousErrors,
+                              waiverFile: "Please select a PDF document.",
+                            }));
                             setWaiverFile(null);
                             e.target.value = "";
                             return;
                           }
 
-                          setError("");
+                          setApprovalFieldErrors((previousErrors) => ({
+                            ...previousErrors,
+                            waiverFile: "",
+                          }));
                           setWaiverFile(file);
                         }}
                       />
@@ -733,12 +789,24 @@ const handleRejectSend = async () => {
 
                   <div className="field-row">
                     <div className="field">
+                      {approvalFieldErrors.assignedPersonnel && (
+                        <p className="field-error" role="alert">
+                          {approvalFieldErrors.assignedPersonnel}
+                        </p>
+                      )}
                       <label>
                         Assign Personnel for {approvalItem.deliveryType || "Fulfillment"}
                       </label>
                       <select
                         value={assignedPersonnel}
-                        onChange={(e) => setAssignedPersonnel(e.target.value)}
+                        onChange={(e) => {
+                          setAssignedPersonnel(e.target.value);
+                          setApprovalFieldErrors((previousErrors) => ({
+                            ...previousErrors,
+                            assignedPersonnel: "",
+                          }));
+                        }}
+                        required
                       >
                         <option value="">Select personnel</option>
                         <option value="Maria Santos">

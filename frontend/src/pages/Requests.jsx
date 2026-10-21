@@ -89,7 +89,7 @@ function Requests() {
   
   const handleReturn = async (item) => {
     const confirmed = window.confirm(
-      "Do you want to return this equipment?"
+      `Do you want to return this ${item.type === "Facility" ? "facility reservation" : "equipment request"}?`
     );
 
     if (!confirmed) {
@@ -384,8 +384,7 @@ function Requests() {
                     {formatTimeRange(item)}
                   </span>
 
-              {["approved", "overdue"].includes(item.status) &&
-                item.type === "Equipment" && (
+              {["approved", "overdue"].includes(item.status) && (
                   <button
                     type="button"
                     className="return-btn"

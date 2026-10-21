@@ -3,6 +3,19 @@ const pool = require("../config/db");
 
 const allowedRoles = ["borrower", "personnel", "admin"];
 
+const logAccountActivity = async (userId, actionType, description) => {
+  try {
+    await pool.query(
+      `INSERT INTO activity_logs
+       (user_id, action_type, description, related_type, related_id)
+       VALUES (?, ?, ?, 'user', ?)`,
+      [userId, actionType, description, userId]
+    );
+  } catch (error) {
+    console.error("Account activity log error:", error.message);
+  }
+};
+
 // GET ALL USERS
 exports.getAllUsers = async (req, res) => {
   try {
@@ -105,7 +118,7 @@ exports.createUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await pool.query(
+    const [userResult] = await pool.query(
       `INSERT INTO users (
         student_id,
         employee_id,
@@ -131,6 +144,12 @@ exports.createUser = async (req, res) => {
         college_department || null,
         contact_number || null,
       ]
+    );
+
+    await logAccountActivity(
+      userResult.insertId,
+      "account_created",
+      "Account created by an administrator"
     );
 
     res.status(201).json({
@@ -262,6 +281,12 @@ exports.updateUser = async (req, res) => {
       ]
     );
 
+    await logAccountActivity(
+      userId,
+      "account_updated",
+      "Account details updated by an administrator"
+    );
+
     res.status(200).json({
       message: "User updated successfully.",
     });
@@ -299,6 +324,12 @@ exports.deactivateUser = async (req, res) => {
         message: "User not found or already inactive.",
       });
     }
+
+    await logAccountActivity(
+      userId,
+      "account_deactivated",
+      "Account deactivated by an administrator"
+    );
 
     res.status(200).json({
       message: "User deactivated successfully.",

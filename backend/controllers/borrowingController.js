@@ -321,6 +321,19 @@ exports.returnBorrowing = async (req, res) => {
     );
 
     await connection.query(
+      `INSERT INTO activity_logs
+       (user_id, action_type, description, related_type, related_id)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        userId,
+        "equipment_return",
+        "Marked equipment request " + request.request_code + " as returned",
+        "request",
+        requestId
+      ]
+    );
+
+    await connection.query(
       `INSERT INTO notifications
        (user_id, title, message, type, event_type, related_request_id)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -357,4 +370,3 @@ exports.returnBorrowing = async (req, res) => {
     }
   }
 };
-

@@ -53,24 +53,31 @@ exports.getBorrowerDashboard = async (req, res) => {
       [userId]
     );
 
-    // 5. Upcoming Reservations (approved facility reservations only)
+// 5. Upcoming Reservations and Active Borrowings (Facilities & Equipment)
     const [upcoming] = await pool.query(
       `SELECT
-         r.id,
-         r.request_code,
-         r.date_needed,
-         r.date_end,
-         r.time_start,
-         r.time_end,
-         r.status,
-         f.name AS facility_name
-       FROM requests r
-       INNER JOIN facilities f ON f.id = r.facility_id
-       WHERE r.user_id = ?
-         AND r.request_type = 'facility'
-         AND r.status = 'approved'
-         AND r.date_end >= CURDATE()
-       ORDER BY r.date_needed ASC, r.time_start ASC`,
+        r.id,
+        r.request_code,
+        r.date_needed,
+        r.date_end,
+        r.time_start,
+        r.time_end,
+        r.status,
+        r.request_type,
+        COALESCE(
+          f.name, 
+          (SELECT GROUP_CONCAT(e.name SEPARATOR ', ') 
+           FROM request_items ri 
+           JOIN equipment e ON e.id = ri.equipment_id 
+           WHERE ri.request_id = r.id),
+          'Equipment Request'
+        ) AS facility_name
+      FROM requests r
+      LEFT JOIN facilities f ON f.id = r.facility_id
+      WHERE r.user_id = ?
+        AND r.status IN ('approved', 'for_delivery', 'for_pickup', 'ongoing')
+        AND COALESCE(r.date_end, r.date_needed) >= CURDATE()
+      ORDER BY r.date_needed ASC, r.time_start ASC`,
       [userId]
     );
 
@@ -129,7 +136,9 @@ exports.getPersonnelDashboard = async (req, res) => {
     );
 
     const [approved] = await pool.query(
-      `SELECT COUNT(*) AS count FROM requests WHERE status IN ('approved', 'for_delivery', 'for_pickup')`
+      `SELECT COUNT(*) AS count
+       FROM requests
+       WHERE status IN ('approved', 'for_delivery', 'for_pickup', 'ongoing')`
     );
 
     const [returns] = await pool.query(
@@ -140,16 +149,19 @@ exports.getPersonnelDashboard = async (req, res) => {
       `SELECT COUNT(*) AS count FROM requests WHERE status = 'overdue'`
     );
 
-    // 2. Today's Tasks (assignments for this personnel)
+    // 2. Today's approved pickup and delivery tasks for this personnel
     const personnelId = req.user.id;
 
     const [todayTasks] = await pool.query(
-      `SELECT a.id, a.title, a.status, a.scheduled_time, a.location,
-              r.request_code
+      `SELECT a.id, a.assignment_type, a.scheduled_time, a.location,
+              r.request_code, r.fulfillment_type, r.status
        FROM assignments a
-       LEFT JOIN requests r ON r.id = a.request_id
+       INNER JOIN requests r ON r.id = a.request_id
        WHERE a.personnel_id = ?
-         AND DATE(a.scheduled_time) = CURDATE()
+         AND r.request_type = 'equipment'
+         AND r.status = 'approved'
+         AND LOWER(r.fulfillment_type) IN ('pickup', 'delivery')
+         AND DATE(r.date_needed) = CURDATE()
        ORDER BY a.scheduled_time ASC
        LIMIT 10`,
       [personnelId]

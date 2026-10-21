@@ -53,11 +53,28 @@ exports.uploadProfilePicture = [
 
         try {
             const imagePath = "/uploads/profiles/" + req.file.filename;  
-        
-            await db.query(
-                "UPDATE users SET profile_image = ? WHERE id = ?",
-                [imagePath, userId]
-            );
+            const connection = await db.getConnection();
+
+            try {
+                await connection.beginTransaction();
+                await connection.query(
+                    "UPDATE users SET profile_image = ? WHERE id = ?",
+                    [imagePath, userId]
+                );
+                await connection.query(
+                    `INSERT INTO activity_logs
+                     (user_id, action_type, description, related_type, related_id)
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [userId, "profile_picture_update", "Changed the account profile picture", "user", userId]
+                );
+                await connection.commit();
+            } catch (error) {
+                await connection.rollback();
+                throw error;
+            } finally {
+                connection.release();
+            }
+
             return res.status(200).json({ message: "Profile picture updated successfully.", profile_image: imagePath  });
         } catch (error) {
             console.error("Update profile picture error:", error);
@@ -209,6 +226,8 @@ exports.updateMyProfile = async (req, res) => {
     });
   }
 
+  let connection;
+
   try {
     // Check whether another user already uses this email
     const [existingUsers] = await db.query(
@@ -235,7 +254,9 @@ const userIdValue =
     : req.body.employee_id;
 
 // Update the user's profile
-    await db.query(
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+    await connection.query(
         `UPDATE users
         SET first_name = ?,
             last_name = ?,
@@ -254,16 +275,31 @@ const userIdValue =
             userId
         ]
     );
+    await connection.query(
+      `INSERT INTO activity_logs
+       (user_id, action_type, description, related_type, related_id)
+       VALUES (?, ?, ?, ?, ?)`,
+      [userId, "profile_update", "Updated account profile details", "user", userId]
+    );
+    await connection.commit();
 
     return res.status(200).json({
       message: "Profile updated successfully."
     });
 
   } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
     console.error("Update profile error:", error);
 
     return res.status(500).json({
       message: "Failed to update profile."
     });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };

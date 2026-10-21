@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./GSDDashboard.css";
 
@@ -14,35 +14,51 @@ function GSDDashboard() {
   const [recentRequests, setRecentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchDashboard = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch("http://localhost:5000/api/dashboard/personnel", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to load dashboard");
+      }
+
+      setStats(data.stats);
+      setTodayTasks(data.todayTasks || []);
+      setRecentRequests(data.recentRequests || []);
+    } catch (err) {
+      console.error("Personnel Dashboard error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const token = localStorage.getItem("token");
-
-        const res = await fetch("http://localhost:5000/api/dashboard/personnel", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.message || "Failed to load dashboard");
-        }
-
-        setStats(data.stats);
-        setTodayTasks(data.todayTasks || []);
-        setRecentRequests(data.recentRequests || []);
-      } catch (err) {
-        console.error("Personnel Dashboard error:", err);
-      } finally {
-        setLoading(false);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        fetchDashboard();
       }
     };
 
     fetchDashboard();
-  }, []);
+    window.addEventListener("focus", refreshWhenVisible);
+    window.addEventListener("request-status-updated", fetchDashboard);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.removeEventListener("focus", refreshWhenVisible);
+      window.removeEventListener("request-status-updated", fetchDashboard);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [fetchDashboard]);
 
   const handleStatClick = (filter) => {
     if (filter === "approved") {
@@ -59,7 +75,9 @@ function GSDDashboard() {
           minute: "2-digit",
         })
       : "";
-    return `${time} - ${task.title || "Task"} - Request #${task.request_code || "N/A"}`;
+    const taskType = task.fulfillment_type || task.assignment_type || "Task";
+    const taskLabel = taskType.charAt(0).toUpperCase() + taskType.slice(1);
+    return `${time ? `${time} - ` : ""}${taskLabel} - Request #${task.request_code || "N/A"}`;
   };
 
   if (loading) {
