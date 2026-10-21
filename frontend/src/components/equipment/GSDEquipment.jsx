@@ -94,7 +94,19 @@ function GSDEquipment() {
           equipments.map((item) => (
             <div key={item.id} className="equipment-card">
               <div className="equipment-image">
-                <div className="image-placeholder"></div>
+                {item.image_url ? (
+                  <img
+                    src={`http://localhost:5000${item.image_url}`}
+                    alt={item.name}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <div className="image-placeholder"></div>
+                )}
               </div>
 
               <div className="equipment-name">{item.name}</div>

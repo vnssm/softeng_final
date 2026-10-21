@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaSearch } from "react-icons/fa";
 import ManageFacilityModal from "./ManageFacilityModal";
 import "./GSDFacilities.css";
 
@@ -10,6 +10,7 @@ function GSDFacilities() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddMode, setIsAddMode] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isHeaderCompact, setIsHeaderCompact] = useState(false);
 
   const token = localStorage.getItem("token");
 
@@ -30,6 +31,26 @@ function GSDFacilities() {
 
   useEffect(() => {
     fetchFacilities();
+  }, []);
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY < lastScrollY) {
+        setIsHeaderCompact(true);
+      } else if (currentScrollY === 0) {
+        setIsHeaderCompact(false);
+      }
+
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const getStatus = (f) => {
@@ -76,7 +97,7 @@ function GSDFacilities() {
   return (
     <div className="personnel-facilities">
       {/* Header + Search + Add */}
-      <div className="facilities-header">
+      <div className={`facilities-header ${isHeaderCompact ? "compact" : ""}`}>
         <div>
           <h1>Facilities</h1>
           <p>Manage and update facilities</p>
@@ -90,7 +111,7 @@ function GSDFacilities() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <span className="search-icon">🔍</span>
+            <FaSearch className="search-icon" />
           </div>
 
           <button className="add-facility-btn" onClick={handleAdd}>
@@ -107,7 +128,19 @@ function GSDFacilities() {
           filtered.map((facility) => (
             <div key={facility.id} className="facility-card">
               <div className="facility-image">
-                <div className="image-placeholder"></div>
+                {facility.image_url ? (
+                  <img
+                    src={`http://localhost:5000${facility.image_url}`}
+                    alt={facility.name}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <div className="image-placeholder"></div>
+                )}
               </div>
 
               <div className="facility-info">

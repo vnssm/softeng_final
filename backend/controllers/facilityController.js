@@ -1,12 +1,43 @@
 
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
 const pool = require("../config/db");
 const saveAuditLog = require("../utils/auditLogger");
+
+const facilityUploadPath = path.join(__dirname, "../uploads/facilities");
+
+if (!fs.existsSync(facilityUploadPath)) {
+  fs.mkdirSync(facilityUploadPath, { recursive: true });
+}
+
+const facilityStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, facilityUploadPath),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const name = req.user?.id || req.user?.userId || "facility";
+    cb(null, `facility_${name}_${Date.now()}${ext}`);
+  },
+});
+
+const facilityUpload = multer({
+  storage: facilityStorage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+      return;
+    }
+
+    cb(new Error("Only image files are allowed."));
+  },
+});
 
 // GET ALL FACILITIES
 exports.getAllFacilities = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, name, description, capacity, location,
+      `SELECT id, name, description, capacity, location, image_url,
               is_available, is_active
        FROM facilities
        ORDER BY name ASC`
@@ -43,183 +74,215 @@ exports.getFacilityById = async (req, res) => {
 };
 
 // CREATE FACILITY
-exports.createFacility = async (req, res) => {
-  try {
-    const {
-      name,
-      description,
-      capacity,
-      location,
-      is_available = 1,
-    } = req.body;
-
-    if (!name) {
-      return res.status(400).json({
-        message: "Facility name is required",
-      });
-    }
-
-    if (
-      capacity !== undefined &&
-      capacity !== null &&
-      capacity !== "" &&
-      (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)
-    ) {
-      return res.status(400).json({
-        message: "Capacity must be a positive whole number",
-      });
-    }
-
-    const [result] = await pool.query(
-      `INSERT INTO facilities
-        (name, description, capacity, location, is_available, is_active)
-       VALUES (?, ?, ?, ?, ?, 1)`,
-      [
+exports.createFacility = [
+  facilityUpload.single("image"),
+  async (req, res) => {
+    try {
+      const {
         name,
-        description || null,
-        capacity === "" || capacity == null
-          ? null
-          : Number(capacity),
-        location || null,
-        Number(is_available) === 1 ? 1 : 0,
-      ]
-    );
+        description,
+        capacity,
+        location,
+        is_available = 1,
+      } = req.body;
 
-    const [newRows] = await pool.query(
-      "SELECT * FROM facilities WHERE id = ?",
-      [result.insertId]
-    );
+      if (typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({
+          message: "Facility name is required",
+        });
+      }
 
-    await saveAuditLog(
-      req,
-      "Facility Created",
-      "facilities",
-      result.insertId,
-      null,
-      newRows[0] || {
+      if (name.trim().length > 100) {
+        return res.status(400).json({
+          message: "Facility name must be 100 characters or fewer",
+        });
+      }
+
+      if (
+        capacity !== undefined &&
+        capacity !== null &&
+        capacity !== "" &&
+        (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)
+      ) {
+        return res.status(400).json({
+          message: "Capacity must be a positive whole number",
+        });
+      }
+
+      const imageUrl = req.file ? `/uploads/facilities/${req.file.filename}` : null;
+
+      const [result] = await pool.query(
+        `INSERT INTO facilities
+          (name, description, capacity, location, image_url, is_available, is_active)
+         VALUES (?, ?, ?, ?, ?, ?, 1)`,
+        [
+          name.trim(),
+          description || null,
+          capacity === "" || capacity == null ? null : Number(capacity),
+          location || null,
+          imageUrl,
+          Number(is_available) === 1 ? 1 : 0,
+        ]
+      );
+
+      const [newRows] = await pool.query(
+        "SELECT * FROM facilities WHERE id = ?",
+        [result.insertId]
+      );
+
+      await saveAuditLog(
+        req,
+        "Facility Created",
+        "facilities",
+        result.insertId,
+        null,
+        newRows[0] || {
+          name,
+          description,
+          capacity,
+          location,
+          image_url: imageUrl,
+          is_available,
+          is_active: 1,
+        }
+      );
+
+      res.status(201).json({
+        message: "Facility added successfully",
+        id: result.insertId,
+        image_url: imageUrl,
+      });
+    } catch (error) {
+      console.error("Create facility error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+];
+
+// UPDATE FACILITY
+exports.updateFacility = [
+  facilityUpload.single("image"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const {
         name,
         description,
         capacity,
         location,
         is_available,
-        is_active: 1,
+        is_active,
+      } = req.body;
+
+      if (
+        name !== undefined &&
+        (typeof name !== "string" || !name.trim())
+      ) {
+        return res.status(400).json({
+          message: "Facility name is required",
+        });
       }
-    );
 
-    res.status(201).json({
-      message: "Facility added successfully",
-      id: result.insertId,
-    });
-  } catch (error) {
-    console.error("Create facility error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+      if (typeof name === "string" && name.trim().length > 100) {
+        return res.status(400).json({
+          message: "Facility name must be 100 characters or fewer",
+        });
+      }
 
-// UPDATE FACILITY
-exports.updateFacility = async (req, res) => {
-  try {
-    const { id } = req.params;
+      if (
+        capacity !== undefined &&
+        capacity !== null &&
+        capacity !== "" &&
+        (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)
+      ) {
+        return res.status(400).json({
+          message: "Capacity must be a positive whole number",
+        });
+      }
 
-    const {
-      name,
-      description,
-      capacity,
-      location,
-      is_available,
-      is_active,
-    } = req.body;
+      const [existingRows] = await pool.query(
+        "SELECT * FROM facilities WHERE id = ?",
+        [id]
+      );
 
-    if (
-      capacity !== undefined &&
-      capacity !== null &&
-      capacity !== "" &&
-      (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)
-    ) {
-      return res.status(400).json({
-        message: "Capacity must be a positive whole number",
-      });
-    }
+      if (existingRows.length === 0) {
+        return res.status(404).json({
+          message: "Facility not found",
+        });
+      }
 
-    const [existingRows] = await pool.query(
-      "SELECT * FROM facilities WHERE id = ?",
-      [id]
-    );
+      const oldValues = existingRows[0];
+      const imageUrl = req.file
+        ? `/uploads/facilities/${req.file.filename}`
+        : oldValues.image_url || null;
 
-    if (existingRows.length === 0) {
-      return res.status(404).json({
-        message: "Facility not found",
-      });
-    }
+      await pool.query(
+        `UPDATE facilities SET
+          name = COALESCE(?, name),
+          description = COALESCE(?, description),
+          capacity = COALESCE(?, capacity),
+          location = COALESCE(?, location),
+          image_url = ?,
+          is_available = COALESCE(?, is_available),
+          is_active = COALESCE(?, is_active)
+         WHERE id = ?`,
+        [
+          name === undefined ? null : name.trim(),
+          description ?? null,
+          capacity === "" ? null : capacity ?? null,
+          location ?? null,
+          imageUrl,
+          is_available === undefined
+            ? null
+            : Number(is_available) === 1
+            ? 1
+            : 0,
+          is_active === undefined
+            ? null
+            : Number(is_active) === 1
+            ? 1
+            : 0,
+          id,
+        ]
+      );
 
-    const oldValues = existingRows[0];
+      const [updatedRows] = await pool.query(
+        "SELECT * FROM facilities WHERE id = ?",
+        [id]
+      );
 
-    await pool.query(
-      `UPDATE facilities SET
-        name = COALESCE(?, name),
-        description = COALESCE(?, description),
-        capacity = COALESCE(?, capacity),
-        location = COALESCE(?, location),
-        is_available = COALESCE(?, is_available),
-        is_active = COALESCE(?, is_active)
-       WHERE id = ?`,
-      [
-        name ?? null,
-        description ?? null,
-        capacity === "" ? null : capacity ?? null,
-        location ?? null,
-        is_available === undefined
-          ? null
-          : Number(is_available) === 1
-          ? 1
-          : 0,
-        is_active === undefined
-          ? null
-          : Number(is_active) === 1
-          ? 1
-          : 0,
+      const newValues = updatedRows[0];
+
+      let action = "Facility Updated";
+
+      if (
+        Number(oldValues.is_active) === 1 &&
+        Number(newValues.is_active) === 0
+      ) {
+        action = "Facility Deactivated";
+      } else if (
+        Number(oldValues.is_available) !== Number(newValues.is_available)
+      ) {
+        action = "Facility Availability Changed";
+      }
+
+      await saveAuditLog(
+        req,
+        action,
+        "facilities",
         id,
-      ]
-    );
+        oldValues,
+        newValues
+      );
 
-    const [updatedRows] = await pool.query(
-      "SELECT * FROM facilities WHERE id = ?",
-      [id]
-    );
-
-    const newValues = updatedRows[0];
-
-    const wasDeactivated =
-      Number(oldValues.is_active) === 1 &&
-      Number(newValues.is_active) === 0;
-
-    let action = "Facility Updated";
-
-    if (
-      Number(oldValues.is_active) === 1 &&
-      Number(newValues.is_active) === 0
-    ) {
-      action = "Facility Deactivated";
-    } else if (
-      Number(oldValues.is_available) !== Number(newValues.is_available)
-    ) {
-      action = "Facility Availability Changed";
+      res.status(200).json({
+        message: "Facility updated successfully",
+        image_url: imageUrl,
+      });
+    } catch (error) {
+      console.error("Update facility error:", error);
+      res.status(500).json({ message: "Server error" });
     }
-
-    await saveAuditLog(
-      req,
-      action,
-      "facilities",
-      id,
-      oldValues,
-      newValues
-    );
-
-    res.status(200).json({
-      message: "Facility updated successfully",
-    });
-  } catch (error) {
-    console.error("Update facility error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+  },
+];

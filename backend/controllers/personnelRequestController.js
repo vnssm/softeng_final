@@ -1,6 +1,39 @@
 
 const db = require("../config/db");
 
+async function notifyUsersInTransaction(connection, { userIds, title, message, type = "info", eventType, requestId }) {
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return;
+  }
+
+  for (const userId of userIds) {
+    await connection.query(
+      `INSERT INTO notifications
+        (user_id, title, message, type, event_type, related_request_id)
+       VALUES (?, ?, ?, ?, ?, ?)` ,
+      [userId, title, message, type, eventType, requestId || null]
+    );
+  }
+}
+
+async function notifyGSDPersonnelInTransaction(connection, { title, message, type = "info", eventType, requestId }) {
+  const [personnelUsers] = await connection.query(
+    `SELECT id
+     FROM users
+     WHERE role IN ('personnel', 'admin')
+       AND is_active = 1`
+  );
+
+  await notifyUsersInTransaction(connection, {
+    userIds: personnelUsers.map((personnel) => personnel.id),
+    title,
+    message,
+    type,
+    eventType,
+    requestId,
+  });
+}
+
 exports.getPersonnelRequests = async (req, res) => {
   try {
 
@@ -16,7 +49,64 @@ exports.getPersonnelRequests = async (req, res) => {
        )
        AND date_end IS NOT NULL
        AND time_end IS NOT NULL
-       AND TIMESTAMP(date_end, time_end) < NOW()`
+       AND TIMESTAMP(date_end, time_end) < NOW()
+       AND NOT EXISTS (
+         SELECT 1 FROM notifications n
+         WHERE n.related_request_id = requests.id
+           AND n.event_type = 'overdue_request'
+       )`
+    );
+
+    await db.query(
+      `INSERT INTO notifications
+       (user_id, title, message, type, event_type, related_request_id)
+       SELECT
+         r.user_id,
+         'Overdue Request',
+         CONCAT(
+           'The request ',
+           r.request_code,
+           ' is now overdue. Please review the current status and next action.'
+         ),
+         'error',
+         'overdue_request',
+         r.id
+       FROM requests r
+       WHERE r.status = 'overdue'
+         AND r.user_id IS NOT NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM notifications n
+           WHERE n.user_id = r.user_id
+             AND n.related_request_id = r.id
+             AND n.event_type = 'overdue_request'
+         )`
+    );
+
+    await db.query(
+      `INSERT INTO notifications
+       (user_id, title, message, type, event_type, related_request_id)
+       SELECT
+         u.id,
+         'Overdue Request',
+         CONCAT(
+           'Request ',
+           r.request_code,
+           ' is now overdue and requires review.'
+         ),
+         'error',
+         'overdue_request',
+         r.id
+       FROM requests r
+       JOIN users u ON u.role IN ('personnel', 'admin')
+       WHERE r.status = 'overdue'
+         AND r.user_id IS NOT NULL
+         AND u.is_active = 1
+         AND NOT EXISTS (
+           SELECT 1 FROM notifications n
+           WHERE n.user_id = u.id
+             AND n.related_request_id = r.id
+             AND n.event_type = 'overdue_request'
+         )`
     );
 
     const [requests] = await db.query(`
@@ -124,7 +214,7 @@ exports.approveRequest = async (req, res) => {
       `SELECT id, user_id, request_code, request_type, fulfillment_type,
               date_needed, time_start, location
        FROM requests
-       WHERE id = ? AND status = 'pending'
+       WHERE id = ? AND status IN ('pending', 'under_review')
        FOR UPDATE`,
       [requestId]
     );
@@ -204,10 +294,45 @@ exports.approveRequest = async (req, res) => {
           request.location || null
         ]
       );
+
+      const scheduleTitle =
+        assignmentType === "pickup" ? "Pickup Schedule" : "Delivery Schedule";
+      const scheduleMessage =
+        "Your " +
+        request.request_type +
+        " request " +
+        request.request_code +
+        " has been scheduled for " +
+        (assignmentType === "pickup" ? "pickup" : "delivery") +
+        " on " +
+        (request.date_needed || "the scheduled date") +
+        ".";
+
+      await connection.query(
+        `INSERT INTO notifications
+          (user_id, title, message, type, event_type, related_request_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          request.user_id,
+          scheduleTitle,
+          scheduleMessage,
+          "warning",
+          "request_schedule",
+          request.id
+        ]
+      );
+
+      await notifyUsersInTransaction(connection, {
+        userIds: [personnel[0].id],
+        title: scheduleTitle,
+        message: `You have been assigned to ${assignmentType} request ${request.request_code}. Please prepare the ${assignmentType} schedule and confirm the details.`,
+        type: "info",
+        eventType: "assignment_assigned",
+        requestId: request.id,
+      });
     }
 
-    
-    // Create a notification for the borrower
+    // Create an approval notification for the borrower
     await connection.query(
       `INSERT INTO notifications
         (user_id, title, message, type, event_type, related_request_id)
@@ -222,6 +347,14 @@ exports.approveRequest = async (req, res) => {
         request.id
       ]
     );
+
+    await notifyGSDPersonnelInTransaction(connection, {
+      title: "Request Approved",
+      message: `Request ${request.request_code} has been approved and assigned to GSD personnel for processing.`,
+      type: "success",
+      eventType: "request_approved",
+      requestId: request.id,
+    });
 
     await connection.commit();
 
@@ -268,7 +401,7 @@ exports.rejectRequest = async (req, res) => {
     const [requests] = await connection.query(
       `SELECT id, user_id, request_code
        FROM requests
-       WHERE id = ? AND status = 'pending'
+       WHERE id = ? AND status IN ('pending', 'under_review')
        FOR UPDATE`,
       [requestId]
     );
@@ -307,6 +440,14 @@ exports.rejectRequest = async (req, res) => {
         request.id
       ]
     );
+
+    await notifyGSDPersonnelInTransaction(connection, {
+      title: "Request Rejected",
+      message: `Request ${request.request_code} was rejected. Reason: ${rejectionReason}`,
+      type: "error",
+      eventType: "request_rejected",
+      requestId: request.id,
+    });
 
     await connection.commit();
 
@@ -435,6 +576,14 @@ exports.inspectReturn = async (req, res) => {
           request.id
         ]
       );
+
+      await notifyGSDPersonnelInTransaction(connection, {
+        title: "Return Issue Reported",
+        message: `Request ${request.request_code} was returned with a defect or issue: ${returnCondition}.`,
+        type: "error",
+        eventType: "return_issue_report",
+        requestId: request.id,
+      });
     }
 
     await connection.commit();

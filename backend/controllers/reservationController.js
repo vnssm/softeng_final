@@ -1,5 +1,6 @@
 
 const db = require("../config/db");
+const { notifyGSDPersonnel } = require("./notificationController");
 
 // Create a new facility reservation
 exports.createReservation = async (req, res) => {
@@ -37,6 +38,58 @@ exports.createReservation = async (req, res) => {
   if (!Number.isInteger(Number(facilityId)) || Number(facilityId) < 1) {
     return res.status(400).json({
       message: "Invalid facility selected."
+    });
+  }
+
+  const trimmedPurpose = purpose.trim();
+
+  if (trimmedPurpose.length < 5) {
+    return res.status(400).json({
+      message: "Purpose must be at least 5 characters long."
+    });
+  }
+
+  const startDateValue = new Date(`${startDate}T00:00:00`);
+  const endDateValue = new Date(`${endDate}T00:00:00`);
+
+  if (Number.isNaN(startDateValue.getTime()) || Number.isNaN(endDateValue.getTime())) {
+    return res.status(400).json({
+      message: "Invalid reservation date. Please choose a valid date."
+    });
+  }
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+
+  if (startDateValue < tomorrow || endDateValue < tomorrow) {
+    return res.status(400).json({
+      message: "Reservation date must be tomorrow or in the future."
+    });
+  }
+
+  const toMinutes = (timeValue) => {
+    const [hours, minutes] = (timeValue || "").split(":").map(Number);
+
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+      return null;
+    }
+
+    return hours * 60 + minutes;
+  };
+
+  const startMinutes = toMinutes(startTime);
+  const endMinutes = toMinutes(endTime);
+
+  if (startMinutes === null || endMinutes === null) {
+    return res.status(400).json({
+      message: "Please enter valid reservation times."
+    });
+  }
+
+  if (startMinutes < 7 * 60 || endMinutes > 17 * 60 || endMinutes <= startMinutes) {
+    return res.status(400).json({
+      message: "Reservation time must be between 7:00 AM and 5:00 PM, and the end time must be later than the start time."
     });
   }
 
@@ -331,6 +384,14 @@ exports.returnReservation = async (req, res) => {
         requestId
       ]
     );
+
+    await notifyGSDPersonnel({
+      title: "Facility Returned",
+      message: `Facility reservation ${request.request_code} has been returned and is awaiting inspection.`,
+      type: "warning",
+      eventType: "request_returned",
+      requestId,
+    });
 
     await connection.commit();
 

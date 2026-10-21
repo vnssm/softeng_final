@@ -5,6 +5,11 @@ const pool = require("../config/db");
 // ======================
 exports.getBorrowerDashboard = async (req, res) => {
   try {
+    const userId = req.user?.id ?? req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ message: "User information is missing. Please log in again." });
+    }
 
     await pool.query(
       `UPDATE requests
@@ -20,8 +25,6 @@ exports.getBorrowerDashboard = async (req, res) => {
         AND time_end IS NOT NULL
         AND TIMESTAMP(date_end, time_end) < NOW()`
     );
-
-    const userId = req.user.id; // comes from auth middleware
 
     // 1. Pending Requests (equipment)
     const [pendingRequests] = await pool.query(
@@ -41,7 +44,7 @@ exports.getBorrowerDashboard = async (req, res) => {
     const [activeBorrowings] = await pool.query(
       `SELECT COUNT(*) AS count FROM requests 
        WHERE user_id = ? AND request_type = 'equipment' 
-       AND status IN ('approved', 'for_delivery', 'for_pickup', 'ongoing')`,
+       AND LOWER(status) IN ('approved', 'for_delivery', 'for_pickup', 'ongoing')`,
       [userId]
     );
 
@@ -49,7 +52,7 @@ exports.getBorrowerDashboard = async (req, res) => {
     const [activeReservations] = await pool.query(
       `SELECT COUNT(*) AS count FROM requests 
        WHERE user_id = ? AND request_type = 'facility' 
-       AND status IN ('approved', 'ongoing')`,
+       AND LOWER(status) IN ('approved', 'ongoing')`,
       [userId]
     );
 
@@ -68,7 +71,7 @@ exports.getBorrowerDashboard = async (req, res) => {
        INNER JOIN facilities f ON f.id = r.facility_id
        WHERE r.user_id = ?
          AND r.request_type = 'facility'
-         AND r.status = 'approved'
+         AND LOWER(r.status) = 'approved'
          AND r.date_end >= CURDATE()
        ORDER BY r.date_needed ASC, r.time_start ASC`,
       [userId]
@@ -109,6 +112,11 @@ exports.getBorrowerDashboard = async (req, res) => {
 // ======================
 exports.getPersonnelDashboard = async (req, res) => {
   try {
+    const personnelId = req.user?.id ?? req.user?.userId;
+
+    if (!personnelId) {
+      return res.status(401).json({ message: "User information is missing. Please log in again." });
+    }
 
     await pool.query(
       `UPDATE requests
@@ -125,24 +133,22 @@ exports.getPersonnelDashboard = async (req, res) => {
     );
     // 1. Stats
     const [pending] = await pool.query(
-      `SELECT COUNT(*) AS count FROM requests WHERE status = 'pending'`
+      `SELECT COUNT(*) AS count FROM requests WHERE LOWER(status) IN ('pending', 'under_review')`
     );
 
     const [approved] = await pool.query(
-      `SELECT COUNT(*) AS count FROM requests WHERE status IN ('approved', 'for_delivery', 'for_pickup')`
+      `SELECT COUNT(*) AS count FROM requests WHERE LOWER(status) IN ('approved', 'for_delivery', 'for_pickup', 'ongoing')`
     );
 
     const [returns] = await pool.query(
-      `SELECT COUNT(*) AS count FROM requests WHERE status = 'returned'`
+      `SELECT COUNT(*) AS count FROM requests WHERE LOWER(status) IN ('returned', 'completed', 'completed_with_issue')`
     );
 
     const [overdue] = await pool.query(
-      `SELECT COUNT(*) AS count FROM requests WHERE status = 'overdue'`
+      `SELECT COUNT(*) AS count FROM requests WHERE LOWER(status) = 'overdue'`
     );
 
     // 2. Today's Tasks (assignments for this personnel)
-    const personnelId = req.user.id;
-
     const [todayTasks] = await pool.query(
       `SELECT a.id, a.title, a.status, a.scheduled_time, a.location,
               r.request_code
@@ -226,7 +232,7 @@ exports.getAdminDashboard = async (req, res) => {
     const [overdue] = await pool.query(
       `SELECT COUNT(*) AS count
        FROM requests
-       WHERE status = 'overdue'`
+       WHERE LOWER(status) = 'overdue'`
     );
 
     res.status(200).json({

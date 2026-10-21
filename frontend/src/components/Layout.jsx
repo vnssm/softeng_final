@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
-import "./layout.css"; // make sure this file exists
+import { FaFacebookF } from "react-icons/fa";
+import "./Layout.css";
 
 function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -42,7 +43,6 @@ function Layout() {
         <Outlet />
       </main>
 
-      {/* Optional Footer (you already have the CSS for it) */}
       <footer className="site-footer">
         <div className="footer-top">
           <div className="footer-text">
@@ -51,18 +51,61 @@ function Layout() {
             Mariano Marcos State University
           </div>
 
+          <div className="footer-social" aria-label="MMSU social media">
+            <a
+              className="footer-social-item"
+              href="https://www.facebook.com/mmsuosas"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="MMSU OSAS Facebook"
+            >
+              <FaFacebookF aria-hidden="true" />
+              <small>@mmsuosas</small>
+            </a>
+            <a
+              className="footer-social-item"
+              href="https://www.facebook.com/MMSU.SirmataOfficial"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="MMSU Sirmata Official Facebook"
+            >
+              <FaFacebookF aria-hidden="true" />
+              <small>@MMSU.SirmataOfficial</small>
+            </a>
+            <a
+              className="footer-social-item"
+              href="https://www.facebook.com/MMSUofficial/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="MMSU Official Facebook"
+            >
+              <FaFacebookF aria-hidden="true" />
+              <small>@MMSUOfficial</small>
+            </a>
+            <a
+              className="footer-social-item"
+              href="https://www.facebook.com/MMSUUSC"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="MMSU USC Facebook"
+            >
+              <FaFacebookF aria-hidden="true" />
+              <small>@MMSUUSC</small>
+            </a>
+          </div>
+
           <div className="footer-university">
-            <img src="/mmsu-logo.png" alt="MMSU Logo" />
+            <img src="/mmsu-footer-logo.png" alt="MMSU Logo" />
             <small>
-              Mariano Marcos State University
+              Brgy. 16-S Quiling Sur, City of Batac
               <br />
-              City of Batac, Ilocos Norte
+              Ilocos Norte, Philippines 2906
             </small>
           </div>
         </div>
 
         <div className="footer-bottom">
-          © {new Date().getFullYear()} MMSU – General Services Directorate. All rights reserved.
+          ©2026 Mariano Marcos State University. All Right Reserved
         </div>
       </footer>
     </div>

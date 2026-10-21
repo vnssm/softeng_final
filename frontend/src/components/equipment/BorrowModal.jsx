@@ -3,6 +3,11 @@ import React, { useState } from "react";
 import "./BorrowModal.css";
 
 function BorrowModal({ equipment, onClose, onSuccess }) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const minDate = tomorrow.toISOString().split("T")[0];
+
   const [formData, setFormData] = useState({
     quantity: "1",
     startDate: "",
@@ -20,9 +25,22 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+    const { name, value } = e.target;
+
+    setFormData((previousData) => {
+      const nextData = { ...previousData, [name]: value };
+
+      if (name === "startDate") {
+        nextData.endDate = "";
+        nextData.startTime = "";
+        nextData.endTime = "";
+      }
+
+      if (name === "startTime") {
+        nextData.endTime = "";
+      }
+
+      return nextData;
     });
 
     setMessage("");
@@ -33,6 +51,48 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
 
     if (!equipment || !equipment.id) {
       setMessage("Equipment ID is missing. Please select the equipment again.");
+      setMessageType("error");
+      return;
+    }
+
+    const startDateValue = new Date(`${formData.startDate}T00:00:00`);
+    const endDateValue = new Date(`${formData.endDate}T00:00:00`);
+
+    if (Number.isNaN(startDateValue.getTime()) || Number.isNaN(endDateValue.getTime())) {
+      setMessage("Invalid borrowing date. Please select a valid date.");
+      setMessageType("error");
+      return;
+    }
+
+    const earliestAllowedDate = new Date(`${minDate}T00:00:00`);
+
+    if (startDateValue < earliestAllowedDate || endDateValue < earliestAllowedDate) {
+      setMessage("Borrowing date must be tomorrow or in the future.");
+      setMessageType("error");
+      return;
+    }
+
+    const toMinutes = (timeValue) => {
+      const [hours, minutes] = (timeValue || "").split(":").map(Number);
+
+      if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+        return null;
+      }
+
+      return hours * 60 + minutes;
+    };
+
+    const startMinutes = toMinutes(formData.startTime);
+    const endMinutes = toMinutes(formData.endTime);
+
+    if (startMinutes === null || endMinutes === null) {
+      setMessage("Please choose valid start and end times.");
+      setMessageType("error");
+      return;
+    }
+
+    if (startMinutes < 7 * 60 || endMinutes > 17 * 60 || endMinutes <= startMinutes) {
+      setMessage("Borrowing time must be between 7:00 AM and 5:00 PM, and the end time must be later than the start time.");
       setMessageType("error");
       return;
     }
@@ -155,7 +215,7 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-                min={new Date().toLocaleDateString("en-CA")}
+                min={minDate}
                 disabled={submitted}
                 required
               />
@@ -168,7 +228,7 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
-                min={formData.startDate || new Date().toLocaleDateString("en-CA")}
+                min={formData.startDate || minDate}
                 disabled={submitted || !formData.startDate}
                 required
               />
@@ -183,6 +243,8 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="startTime"
                 value={formData.startTime}
                 onChange={handleChange}
+                min="07:00"
+                max="17:00"
                 disabled={submitted || !formData.startDate}
                 required
               />
@@ -195,10 +257,14 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="endTime"
                 value={formData.endTime}
                 onChange={handleChange}
-                disabled={submitted || 
-                  !formData.startDate || 
-                  !formData.startTime 
-                  }
+                min={
+                  formData.startDate &&
+                  formData.startDate === formData.endDate
+                    ? formData.startTime || undefined
+                    : "07:00"
+                }
+                max="17:00"
+                disabled={submitted || !formData.startDate || !formData.startTime}
                 required
               />
             </div>

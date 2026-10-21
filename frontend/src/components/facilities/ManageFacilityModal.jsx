@@ -9,10 +9,14 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
     location: "",
     status: "Available",
   });
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    setSelectedImage(null);
+
     if (facility && !isAddMode) {
       setFormData({
         name: facility.name || "",
@@ -21,6 +25,21 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
         location: facility.location || "",
         status: facility.is_available ? "Available" : "Unavailable",
       });
+
+      setPreviewUrl(
+        facility.image_url
+          ? `http://localhost:5000${facility.image_url}`
+          : ""
+      );
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        capacity: "",
+        location: "",
+        status: "Available",
+      });
+      setPreviewUrl("");
     }
   }, [facility, isAddMode]);
 
@@ -30,6 +49,17 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
 
   const setStatus = (status) => {
     setFormData({ ...formData, status });
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setSelectedImage(file);
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e) => {
@@ -44,14 +74,24 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
         : `http://localhost:5000/api/facilities/${facility.id}`;
 
       const method = isAddMode ? "POST" : "PUT";
+      const payload = new FormData();
+
+      payload.append("name", formData.name);
+      payload.append("description", formData.description || "");
+      payload.append("capacity", formData.capacity || "");
+      payload.append("location", formData.location || "");
+      payload.append("is_available", formData.status === "Available" ? "1" : "0");
+
+      if (selectedImage) {
+        payload.append("image", selectedImage);
+      }
 
       const res = await fetch(url, {
         method,
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: payload,
       });
 
       const data = await res.json();
@@ -123,6 +163,26 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
               onChange={handleChange}
               placeholder="e.g. Main Campus"
             />
+          </div>
+
+          <div className="form-group">
+            <label>Facility Photo</label>
+            <input type="file" accept="image/*" onChange={handleImageChange} />
+            {previewUrl && (
+              <div style={{ marginTop: "10px" }}>
+                <img
+                  src={previewUrl}
+                  alt="Facility preview"
+                  style={{
+                    width: "100%",
+                    maxHeight: "180px",
+                    objectFit: "cover",
+                    borderRadius: "10px",
+                    border: "1px solid #ddd",
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="form-group">

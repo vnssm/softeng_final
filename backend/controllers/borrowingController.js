@@ -2,6 +2,7 @@
 const db = require("../config/db");
 
 const { logActivity } = require("./activityController");
+const { notifyGSDPersonnel } = require("./notificationController");
 
 // Create a new equipment borrowing request
 exports.createBorrowing = async (req, res) => {
@@ -45,6 +46,50 @@ exports.createBorrowing = async (req, res) => {
   ) {
     return res.status(400).json({
       message: "Quantity must be at least 1."
+    });
+  }
+
+  const startDateValue = new Date(`${startDate}T00:00:00`);
+  const endDateValue = new Date(`${endDate}T00:00:00`);
+
+  if (Number.isNaN(startDateValue.getTime()) || Number.isNaN(endDateValue.getTime())) {
+    return res.status(400).json({
+      message: "Invalid borrowing date. Please choose a valid date."
+    });
+  }
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+
+  if (startDateValue < tomorrow || endDateValue < tomorrow) {
+    return res.status(400).json({
+      message: "Borrowing date must be tomorrow or in the future."
+    });
+  }
+
+  const toMinutes = (timeValue) => {
+    const [hours, minutes] = (timeValue || "").split(":").map(Number);
+
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+      return null;
+    }
+
+    return hours * 60 + minutes;
+  };
+
+  const startMinutes = toMinutes(startTime);
+  const endMinutes = toMinutes(endTime);
+
+  if (startMinutes === null || endMinutes === null) {
+    return res.status(400).json({
+      message: "Please enter valid borrowing times."
+    });
+  }
+
+  if (startMinutes < 7 * 60 || endMinutes > 17 * 60 || endMinutes <= startMinutes) {
+    return res.status(400).json({
+      message: "Borrowing time must be between 7:00 AM and 5:00 PM, and the end time must be later than the start time."
     });
   }
 
@@ -334,6 +379,14 @@ exports.returnBorrowing = async (req, res) => {
         requestId
       ]
     );
+
+    await notifyGSDPersonnel({
+      title: "Equipment Returned",
+      message: `Equipment request ${request.request_code} has been returned and is awaiting inspection.`,
+      type: "warning",
+      eventType: "request_returned",
+      requestId,
+    });
 
     await connection.commit();
 

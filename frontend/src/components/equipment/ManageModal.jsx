@@ -10,10 +10,14 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
     location: "",
     condition_status: "Good",
   });
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    setSelectedImage(null);
+
     if (equipment && !isAddMode) {
       setFormData({
         name: equipment.name || "",
@@ -23,6 +27,22 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
         location: equipment.location || "",
         condition_status: equipment.condition_status || "Good",
       });
+
+      setPreviewUrl(
+        equipment.image_url
+          ? `http://localhost:5000${equipment.image_url}`
+          : ""
+      );
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        category: "",
+        quantity_total: 1,
+        location: "",
+        condition_status: "Good",
+      });
+      setPreviewUrl("");
     }
   }, [equipment, isAddMode]);
 
@@ -32,6 +52,17 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
 
   const setStatus = (status) => {
     setFormData({ ...formData, condition_status: status });
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setSelectedImage(file);
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e) => {
@@ -46,14 +77,22 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
         : `http://localhost:5000/api/equipment/${equipment.id}`;
 
       const method = isAddMode ? "POST" : "PUT";
+      const payload = new FormData();
+
+      Object.entries(formData).forEach(([key, value]) => {
+        payload.append(key, value);
+      });
+
+      if (selectedImage) {
+        payload.append("image", selectedImage);
+      }
 
       const res = await fetch(url, {
         method,
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: payload,
       });
 
       const data = await res.json();
@@ -139,6 +178,26 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
               onChange={handleChange}
               placeholder="e.g. GSD Storage Room"
             />
+          </div>
+
+          <div className="form-group">
+            <label>Equipment Photo</label>
+            <input type="file" accept="image/*" onChange={handleImageChange} />
+            {previewUrl && (
+              <div style={{ marginTop: "10px" }}>
+                <img
+                  src={previewUrl}
+                  alt="Equipment preview"
+                  style={{
+                    width: "100%",
+                    maxHeight: "180px",
+                    objectFit: "cover",
+                    borderRadius: "10px",
+                    border: "1px solid #ddd",
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="form-group">

@@ -1,6 +1,68 @@
 
 const db = require("../config/db");
 
+async function insertNotification({
+  userId,
+  title,
+  message,
+  type = "info",
+  eventType,
+  requestId,
+}) {
+  if (!userId || !title || !message || !eventType) {
+    return;
+  }
+
+  await db.query(
+    `INSERT INTO notifications
+     (user_id, title, message, type, event_type, related_request_id)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [userId, title, message, type, eventType, requestId || null]
+  );
+}
+
+async function notifyUsers({
+  userIds,
+  title,
+  message,
+  type = "info",
+  eventType,
+  requestId,
+}) {
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return;
+  }
+
+  for (const userId of userIds) {
+    await insertNotification({
+      userId,
+      title,
+      message,
+      type,
+      eventType,
+      requestId,
+    });
+  }
+}
+
+async function notifyGSDPersonnel({ title, message, type = "info", eventType, requestId }) {
+  const [personnelUsers] = await db.query(
+    `SELECT id
+     FROM users
+     WHERE role IN ('personnel', 'admin')
+       AND is_active = 1`
+  );
+
+  await notifyUsers({
+    userIds: personnelUsers.map((personnel) => personnel.id),
+    title,
+    message,
+    type,
+    eventType,
+    requestId,
+  });
+}
+
 // Check for upcoming and overdue requests
 async function createAutomaticNotifications(userId) {
   // Reminder for approved requests starting today or tomorrow
@@ -16,9 +78,19 @@ async function createAutomaticNotifications(userId) {
      )
      SELECT
        r.user_id,
-       'Upcoming Request',
+       CASE
+         WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'pickup' THEN 'Pickup Schedule'
+         WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'delivery' THEN 'Delivery Schedule'
+         ELSE 'Upcoming Request'
+       END,
        CONCAT(
-         'Your request for ',
+         'Your ',
+         CASE
+           WHEN r.request_type = 'equipment' THEN 'equipment request'
+           WHEN r.request_type = 'facility' THEN 'facility reservation'
+           ELSE 'request'
+         END,
+         ' for ',
          COALESCE(
            (
              SELECT GROUP_CONCAT(e.name SEPARATOR ', ')
@@ -30,11 +102,17 @@ async function createAutomaticNotifications(userId) {
            'your requested resource'
          ),
          ' is scheduled for ',
+         CASE
+           WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'pickup' THEN 'pickup'
+           WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'delivery' THEN 'delivery'
+           ELSE 'processing'
+         END,
+         ' on ',
          DATE_FORMAT(r.date_needed, '%M %e, %Y'),
          '.'
        ),
        'warning',
-       'upcoming_request',
+       'request_schedule',
        r.id
      FROM requests r
      LEFT JOIN facilities f ON r.facility_id = f.id
@@ -47,7 +125,7 @@ async function createAutomaticNotifications(userId) {
          FROM notifications n
          WHERE n.user_id = r.user_id
            AND n.related_request_id = r.id
-           AND n.event_type = 'upcoming_request'
+           AND n.event_type = 'request_schedule'
        )`,
     [userId]
   );
@@ -118,12 +196,7 @@ exports.getMyNotifications = async (req, res) => {
   }
 
   try {
-    // Create any reminders that are currently needed
-    if (req.user.role === "borrower") {
-      await createAutomaticNotifications(userId);
-    }
-
-    // Retrieve the borrower's notifications
+    // Fetch notifications only. Reminder generation is handled by actual request lifecycle events.
     const [notifications] = await db.query(
       `SELECT
          id,
@@ -181,3 +254,7 @@ exports.markAsRead = async (req, res) => {
     });
   }
 };
+
+exports.insertNotification = insertNotification;
+exports.notifyUsers = notifyUsers;
+exports.notifyGSDPersonnel = notifyGSDPersonnel;

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { FaSearch } from "react-icons/fa";
 import FacilityViewModal from "./FacilityViewModal";
 import FacilityReserveModal from "./FacilityReserveModal";
 import "./BorrowerFacilities.css";
@@ -12,6 +13,7 @@ function BorrowerFacilities() {
   const [reserveModalOpen, setReserveModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isHeaderCompact, setIsHeaderCompact] = useState(false);
 
   // Get facilities from the backend
   const fetchFacilities = async () => {
@@ -56,12 +58,36 @@ function BorrowerFacilities() {
     fetchFacilities();
   }, []);
 
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY < lastScrollY) {
+        setIsHeaderCompact(true);
+      } else if (currentScrollY === 0) {
+        setIsHeaderCompact(false);
+      }
+
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Search facilities by name
   const filtered = facilities.filter((facility) =>
     (facility.name || "")
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
+  const getFacilityStatus = (facility) =>
+    facility.status ||
+    (Number(facility.is_available) === 1 ? "Available" : "Unavailable");
 
   // Open facility details
   const openViewModal = (facility) => {
@@ -71,6 +97,10 @@ function BorrowerFacilities() {
 
   // Open reservation modal
   const openReserveModal = () => {
+    if (!selectedFacility || Number(selectedFacility.is_available) !== 1) {
+      return;
+    }
+
     setViewModalOpen(false);
     setReserveModalOpen(true);
   };
@@ -85,7 +115,7 @@ function BorrowerFacilities() {
   return (
     <div className="borrower-facilities">
       {/* Header and Search */}
-      <div className="facilities-header">
+      <div className={`facilities-header ${isHeaderCompact ? "compact" : ""}`}>
         <div>
           <h1>Facilities</h1>
           <p>Facilities of MMSU</p>
@@ -98,7 +128,7 @@ function BorrowerFacilities() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <span className="search-icon">🔍</span>
+          <FaSearch className="search-icon" />
         </div>
       </div>
 
@@ -142,11 +172,9 @@ function BorrowerFacilities() {
                       "No description available."}
                   </p>
 
-                  {facility.status && (
-                    <p className="facility-status">
-                      Status: {facility.status}
-                    </p>
-                  )}
+                  <p className="facility-status">
+                    Status: {getFacilityStatus(facility)}
+                  </p>
                 </div>
 
                 <button

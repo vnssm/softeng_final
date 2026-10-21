@@ -48,10 +48,24 @@ function AdminFacilityModal({
       ...form,
       [name]: value,
     });
+    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const name = form.name.trim();
+    const capacity = form.capacity.trim();
+
+    if (!name) {
+      setError("Facility name is required.");
+      return;
+    }
+
+    if (capacity && (!/^\d+$/.test(capacity) || Number(capacity) < 1)) {
+      setError("Capacity must be a positive whole number.");
+      return;
+    }
+
     setSaving(true);
     setError("");
 
@@ -70,8 +84,9 @@ function AdminFacilityModal({
         },
         body: JSON.stringify({
           ...form,
+          name,
           capacity:
-            form.capacity === "" ? null : Number(form.capacity),
+            capacity === "" ? null : Number(capacity),
           is_available: Number(form.is_available),
         }),
       });
@@ -127,6 +142,8 @@ function AdminFacilityModal({
                 value={form.name}
                 onChange={handleChange}
                 placeholder="Enter facility name"
+                maxLength={100}
+                aria-invalid={Boolean(error)}
                 required
               />
             </label>
@@ -199,7 +216,9 @@ function AdminFacilityModal({
           </div>
 
           {error && (
-            <p className="admin-equipment-error">{error}</p>
+            <p className="admin-equipment-error" role="alert">
+              {error}
+            </p>
           )}
 
           <div className="admin-equipment-actions">

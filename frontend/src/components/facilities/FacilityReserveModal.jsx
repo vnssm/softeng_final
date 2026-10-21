@@ -3,6 +3,11 @@ import React, { useState } from "react";
 import "./FacilityModals.css";
 
 function FacilityReserveModal({ facility, onClose }) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const minDate = tomorrow.toISOString().split("T")[0];
+
   const [formData, setFormData] = useState({
     startDate: "",
     endDate: "",
@@ -15,6 +20,19 @@ function FacilityReserveModal({ facility, onClose }) {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  const isFacilityAvailable = Number(facility?.is_available) === 1;
+
+  const toMinutes = (timeString) => {
+    if (!timeString) return null;
+
+    const [hours, minutes] = timeString.split(":").map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+      return null;
+    }
+
+    return hours * 60 + minutes;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -47,15 +65,60 @@ function FacilityReserveModal({ facility, onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (loading || submitted) {
+    if (loading || submitted || !isFacilityAvailable) {
       return;
     }
 
     if (
-      formData.endDate < formData.startDate ||
-      (formData.startDate === formData.endDate &&
-        formData.endTime <= formData.startTime)
+      !formData.startDate ||
+      !formData.endDate ||
+      !formData.startTime ||
+      !formData.endTime
     ) {
+      setMessage("Please enter a start and end date and time.");
+      setMessageType("error");
+      return;
+    }
+
+    const startDateValue = new Date(`${formData.startDate}T00:00:00`);
+    const endDateValue = new Date(`${formData.endDate}T00:00:00`);
+
+    if (Number.isNaN(startDateValue.getTime()) || Number.isNaN(endDateValue.getTime())) {
+      setMessage("Invalid date entered. Please choose a valid reservation date.");
+      setMessageType("error");
+      return;
+    }
+
+    const earliestAllowedDate = new Date(minDate + "T00:00:00");
+
+    if (startDateValue < earliestAllowedDate || endDateValue < earliestAllowedDate) {
+      setMessage("Reservation date must be tomorrow or in the future.");
+      setMessageType("error");
+      return;
+    }
+
+    const startMinutes = toMinutes(formData.startTime);
+    const endMinutes = toMinutes(formData.endTime);
+
+    if (startMinutes === null || endMinutes === null) {
+      setMessage("Please choose valid start and end times.");
+      setMessageType("error");
+      return;
+    }
+
+    if (startMinutes < 7 * 60 || endMinutes > 17 * 60 || endMinutes <= startMinutes) {
+      setMessage("Reservation time must be between 7:00 AM and 5:00 PM, and the end time must be later than the start time.");
+      setMessageType("error");
+      return;
+    }
+
+    if (formData.purpose.trim().length < 5) {
+      setMessage("Purpose must be at least 5 characters long.");
+      setMessageType("error");
+      return;
+    }
+
+    if (formData.endDate < formData.startDate || (formData.startDate === formData.endDate && formData.endTime <= formData.startTime)) {
       setMessage(
         "Please check that your end date and time are later than your start date and time."
       );
@@ -152,7 +215,8 @@ function FacilityReserveModal({ facility, onClose }) {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-                disabled={submitted}
+                min={minDate}
+                disabled={submitted || !isFacilityAvailable}
                 required
               />
             </div>
@@ -164,8 +228,8 @@ function FacilityReserveModal({ facility, onClose }) {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
-                min={formData.startDate || undefined}
-                disabled={submitted || !formData.startDate}
+                min={formData.startDate || minDate}
+                disabled={submitted || !isFacilityAvailable}
                 required
               />
             </div>
@@ -179,7 +243,9 @@ function FacilityReserveModal({ facility, onClose }) {
                 name="startTime"
                 value={formData.startTime}
                 onChange={handleChange}
-                disabled={submitted || !formData.startDate}
+                min="07:00"
+                max="17:00"
+                disabled={submitted || !isFacilityAvailable}
                 required
               />
             </div>
@@ -192,11 +258,13 @@ function FacilityReserveModal({ facility, onClose }) {
                 value={formData.endTime}
                 onChange={handleChange}
                 min={
+                  formData.startDate &&
                   formData.startDate === formData.endDate
                     ? formData.startTime || undefined
-                    : undefined
+                    : "07:00"
                 }
-                disabled={submitted || !formData.startTime}
+                max="17:00"
+                disabled={submitted || !isFacilityAvailable}
                 required
               />
             </div>
@@ -210,7 +278,7 @@ function FacilityReserveModal({ facility, onClose }) {
               onChange={handleChange}
               placeholder="Enter the purpose of your reservation..."
               rows="4"
-              disabled={submitted}
+              disabled={submitted || !isFacilityAvailable}
               required
             />
           </div>
@@ -243,9 +311,11 @@ function FacilityReserveModal({ facility, onClose }) {
             <button
               type="submit"
               className="btn-save"
-              disabled={loading || submitted}
+              disabled={loading || submitted || !isFacilityAvailable}
             >
-              {submitted
+              {!isFacilityAvailable
+                ? "Unavailable"
+                : submitted
                 ? "Reservation Submitted"
                 : loading
                 ? "Submitting..."

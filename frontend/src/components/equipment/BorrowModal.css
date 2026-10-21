@@ -72,6 +72,26 @@
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
+  background-color: #fff;
+}
+
+.form-group input[type="date"],
+.form-group input[type="time"] {
+  padding-right: 36px;
+  cursor: pointer;
+  color: #1f2937;
+}
+
+.form-group input[type="date"]::-webkit-calendar-picker-indicator,
+.form-group input[type="time"]::-webkit-calendar-picker-indicator {
+  display: block;
+  opacity: 1;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+  filter: grayscale(1) brightness(0.55);
+  pointer-events: auto;
 }
 
 .form-group input:focus,

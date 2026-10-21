@@ -48,21 +48,39 @@
 
 .facility-modal-image .image-placeholder.large {
   width: 100%;
-  height: 200px;
+  height: 250px;
   background: #e5e7eb;
   border-radius: 10px;
   margin-bottom: 16px;
 }
 
+.facility-view-modal {
+  max-width: 600px;
+  border-radius: 20px;
+}
+
+.facility-view-header {
+  padding: 24px 30px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.facility-view-header h2 {
+  font-size: 25px;
+}
+
+.facility-view-body {
+  padding: 0 30px 30px;
+}
+
 .desc-label {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: #333;
   margin-bottom: 4px;
 }
 
 .desc-text {
-  font-size: 13px;
+  font-size: 15px;
   color: #555;
   line-height: 1.5;
   margin-bottom: 16px;
@@ -72,8 +90,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 24px;
-  font-size: 14px;
+  margin-bottom: 30px;
+  font-size: 16px;
+  color: #6b6476;
 }
 
 .status-badge {
@@ -109,6 +128,21 @@
   background: #054a08;
 }
 
+.reserve-btn.disabled-reserve {
+  background: #a0a0a0;
+  color: white;
+  cursor: not-allowed;
+}
+
+.reserve-btn.disabled-reserve:hover {
+  background: #a0a0a0;
+}
+
+.facility-view-reserve {
+  padding: 15px;
+  font-size: 17px;
+}
+
 /* Reserve Modal Form */
 .modal-form {
   padding: 10px 24px 24px;
@@ -133,6 +167,26 @@
   border-radius: 8px;
   font-size: 14px;
   outline: none;
+  background-color: #fff;
+}
+
+.form-group input[type="date"],
+.form-group input[type="time"] {
+  padding-right: 36px;
+  cursor: pointer;
+  color: #1f2937;
+}
+
+.form-group input[type="date"]::-webkit-calendar-picker-indicator,
+.form-group input[type="time"]::-webkit-calendar-picker-indicator {
+  display: block;
+  opacity: 1;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+  filter: grayscale(1) brightness(0.55);
+  pointer-events: auto;
 }
 
 .form-group input:focus,
@@ -174,6 +228,18 @@
 }
 
 @media (max-width: 500px) {
+  .facility-view-header {
+    padding: 20px 22px 12px;
+  }
+
+  .facility-view-body {
+    padding: 0 22px 22px;
+  }
+
+  .facility-modal-image .image-placeholder.large {
+    height: 200px;
+  }
+
   .form-row {
     grid-template-columns: 1fr;
   }

@@ -1,11 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  FaSearch,
-  FaPlus,
-  FaEdit,
-  FaTrash,
-  FaUndo,
-} from "react-icons/fa";
+import { FaPlus, FaEdit, FaTrash, FaUndo } from "react-icons/fa";
 import AdminFacilityModal from "./AdminFacilityModal";
 import "./UserManagement.css";
 
@@ -160,7 +154,6 @@ function FacilityManagement() {
 
         <div className="admin-toolbar">
           <div className="search-box">
-            <FaSearch className="search-icon" />
             <input
               type="text"
               placeholder="Search facilities..."
