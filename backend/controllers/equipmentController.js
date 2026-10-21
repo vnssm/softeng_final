@@ -49,7 +49,7 @@ exports.createEquipment = async (req, res) => {
       category,
       quantity_total,
       location,
-      condition_status = "Good",
+      condition_status = "Available",
     } = body;
     const name = typeof body.name === "string" ? body.name.trim() : "";
 
@@ -72,10 +72,10 @@ exports.createEquipment = async (req, res) => {
       quantity_total === "" ||
       !Number.isInteger(quantity) ||
       quantity < 1 ||
-      quantity > 2147483647
+      quantity > 500
     ) {
       return res.status(400).json({
-        message: "Quantity must be a positive whole number.",
+        message: "Quantity must be a whole number between 1 and 500.",
       });
     }
 
@@ -109,7 +109,11 @@ exports.createEquipment = async (req, res) => {
       });
     }
 
-    if (!["Good", "Needs Repair", "Damaged"].includes(condition_status)) {
+    if (
+      !["Available", "Unavailable", "Under maintenance"].includes(
+        condition_status
+      )
+    ) {
       return res.status(400).json({
         message: "Select a valid equipment condition.",
       });
@@ -194,10 +198,25 @@ exports.updateEquipment = async (req, res) => {
 
     if (
       condition_status !== undefined &&
-      !["Good", "Needs Repair", "Damaged"].includes(condition_status)
+      !["Available", "Unavailable", "Under maintenance"].includes(
+        condition_status
+      )
     ) {
       return res.status(400).json({
         message: "Select a valid equipment condition.",
+      });
+    }
+
+    if (
+      quantity_total !== undefined &&
+      quantity_total !== null &&
+      quantity_total !== "" &&
+      (!Number.isInteger(Number(quantity_total)) ||
+        Number(quantity_total) < 1 ||
+        Number(quantity_total) > 500)
+    ) {
+      return res.status(400).json({
+        message: "Quantity must be a whole number between 1 and 500.",
       });
     }
 

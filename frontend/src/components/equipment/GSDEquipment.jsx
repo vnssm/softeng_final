@@ -92,9 +92,6 @@ function GSDEquipment() {
               <div className="equipment-meta">
                 Available: {item.quantity_available} / {item.quantity_total}
               </div>
-              <div className="equipment-condition">
-                Condition: {item.condition_status || "Unknown"}
-              </div>
 
               <button
                 className="equipment-btn manage"

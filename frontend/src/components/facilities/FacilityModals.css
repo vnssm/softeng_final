@@ -88,9 +88,14 @@
   color: #065f46;
 }
 
-.status-badge.using {
+.status-badge.unavailable {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.status-badge.under-maintenance {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .reserve-btn {
@@ -107,6 +112,12 @@
 
 .reserve-btn:hover {
   background: #054a08;
+}
+
+.reserve-btn:disabled {
+  background: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
 }
 
 /* Reserve Modal Form */

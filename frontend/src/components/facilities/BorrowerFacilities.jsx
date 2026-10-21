@@ -42,7 +42,22 @@ function BorrowerFacilities() {
         throw new Error("The server returned an invalid facility list.");
       }
 
-      setFacilities(data);
+      setFacilities(
+        data.map((facility) => {
+          const status =
+            Number(facility.is_active) !== 1
+              ? "Unavailable"
+              : ["Available", "Unavailable", "Under maintenance"].includes(
+                    facility.condition_status
+                  )
+                ? facility.condition_status
+                : Number(facility.is_available) === 1
+                  ? "Available"
+                  : "Unavailable";
+
+          return { ...facility, status };
+        })
+      );
     } catch (err) {
       console.error("Error loading facilities:", err);
       setError(err.message || "Unable to connect to the server.");
@@ -142,11 +157,13 @@ function BorrowerFacilities() {
                       "No description available."}
                   </p>
 
-                  {facility.status && (
-                    <p className="facility-status">
-                      Status: {facility.status}
-                    </p>
-                  )}
+                  <p
+                    className={`facility-status ${facility.status
+                      .toLowerCase()
+                      .replaceAll(" ", "-")}`}
+                  >
+                    Status: <span>{facility.status}</span>
+                  </p>
                 </div>
 
                 <button

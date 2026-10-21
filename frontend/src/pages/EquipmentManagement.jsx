@@ -51,10 +51,17 @@ function EquipmentManagement() {
     }
 
     if (
-      item.condition_status === "Needs Repair" ||
-      item.condition_status === "Damaged"
+      item.condition_status === "Under maintenance" ||
+      item.condition_status === "Needs Repair"
     ) {
       return "Under maintenance";
+    }
+
+    if (
+      item.condition_status === "Unavailable" ||
+      item.condition_status === "Damaged"
+    ) {
+      return "Unavailable";
     }
 
     if (Number(item.quantity_available) <= 0) {

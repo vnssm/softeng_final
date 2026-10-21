@@ -21,14 +21,24 @@ function FacilityViewModal({ facility, onClose, onReserve }) {
 
             <div className="status-row">
               <span>Status:</span>
-              <span className={`status-badge ${facility?.status === "Available" ? "available" : "using"}`}>
+              <span
+                className={`status-badge ${facility?.status
+                  ?.toLowerCase()
+                  .replaceAll(" ", "-") || "unavailable"}`}
+              >
                 {facility?.status}
               </span>
             </div>
           </div>
 
-          <button className="reserve-btn" onClick={onReserve}>
-            Reserve
+          <button
+            className="reserve-btn"
+            onClick={onReserve}
+            disabled={facility?.status !== "Available"}
+          >
+            {facility?.status === "Available"
+              ? "Reserve"
+              : "Reservations Unavailable"}
           </button>
         </div>
       </div>
