@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from "react";
 import "./ManageModal.css";
 
+const normalizeConditionStatus = (status) => {
+  if (status === "Good") return "Available";
+  if (status === "Needs Repair") return "Under maintenance";
+  if (status === "Damaged") return "Unavailable";
+  return status;
+};
+
 function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     category: "",
-    quantity_total: 1,
+    quantity_total: "",
     location: "",
-    condition_status: "Good",
+    condition_status: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -21,7 +28,18 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
         category: equipment.category || "",
         quantity_total: equipment.quantity_total || 1,
         location: equipment.location || "",
-        condition_status: equipment.condition_status || "Good",
+        condition_status: normalizeConditionStatus(
+          equipment.condition_status || "Available"
+        ),
+      });
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        category: "",
+        quantity_total: "",
+        location: "",
+        condition_status: "",
       });
     }
   }, [equipment, isAddMode]);
@@ -47,12 +65,24 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
       setError("Equipment name is required.");
       return;
     }
+    if (!formData.description.trim()) {
+      setError("Equipment description is required.");
+      return;
+    }
+    if (!formData.category.trim()) {
+      setError("Equipment category is required.");
+      return;
+    }
+    if (!formData.location.trim()) {
+      setError("Equipment location is required.");
+      return;
+    }
     if (name.length > 150) {
       setError("Equipment name must be 150 characters or fewer.");
       return;
     }
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 2147483647) {
-      setError("Quantity must be a positive whole number.");
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 500) {
+      setError("Quantity must be a whole number between 1 and 500.");
       return;
     }
     if (formData.category.trim().length > 100) {
@@ -67,7 +97,11 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
       setError("Description is too long.");
       return;
     }
-    if (!["Good", "Needs Repair", "Damaged"].includes(formData.condition_status)) {
+    if (
+      !["Available", "Unavailable", "Under maintenance"].includes(
+        formData.condition_status
+      )
+    ) {
       setError("Select a valid equipment condition.");
       return;
     }
@@ -126,7 +160,7 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-group">
-            <label>Equipment Name</label>
+            <label>Equipment Name *</label>
             <input
               type="text"
               name="name"
@@ -139,18 +173,19 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
           </div>
 
           <div className="form-group">
-            <label>Description</label>
+            <label>Description *</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
               placeholder="Enter description..."
               rows="3"
+              required
             />
           </div>
 
           <div className="form-group">
-            <label>Category</label>
+            <label>Category *</label>
             <input
               type="text"
               name="category"
@@ -158,25 +193,27 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
               onChange={handleChange}
               placeholder="e.g. AV Equipment, Furniture"
               maxLength={100}
+              required
             />
           </div>
 
           <div className="form-group">
-            <label>Total Quantity</label>
+            <label>Total Quantity *</label>
             <input
               type="number"
               name="quantity_total"
               value={formData.quantity_total}
               onChange={handleChange}
+              placeholder="e.g. 200"
               min="1"
-              max="2147483647"
+              max="500"
               step="1"
               required
             />
           </div>
 
           <div className="form-group">
-            <label>Location</label>
+            <label>Location *</label>
             <input
               type="text"
               name="location"
@@ -184,41 +221,42 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
               onChange={handleChange}
               placeholder="e.g. GSD Storage Room"
               maxLength={150}
+              required
             />
           </div>
 
           <div className="form-group">
-            <label>Condition / Status</label>
+            <label>Condition / Status *</label>
             <div className="status-buttons">
               <button
                 type="button"
-                aria-pressed={formData.condition_status === "Good"}
+                aria-pressed={formData.condition_status === "Available"}
                 className={`status-btn ${
-                  formData.condition_status === "Good" ? "active" : ""
+                  formData.condition_status === "Available" ? "active" : ""
                 }`}
-                onClick={() => setStatus("Good")}
+                onClick={() => setStatus("Available")}
               >
-                Good
+                Available
               </button>
               <button
                 type="button"
-                aria-pressed={formData.condition_status === "Needs Repair"}
+                aria-pressed={formData.condition_status === "Unavailable"}
                 className={`status-btn ${
-                  formData.condition_status === "Needs Repair" ? "active" : ""
+                  formData.condition_status === "Unavailable" ? "active" : ""
                 }`}
-                onClick={() => setStatus("Needs Repair")}
+                onClick={() => setStatus("Unavailable")}
               >
-                Needs Repair
+                Unavailable
               </button>
               <button
                 type="button"
-                aria-pressed={formData.condition_status === "Damaged"}
+                aria-pressed={formData.condition_status === "Under maintenance"}
                 className={`status-btn ${
-                  formData.condition_status === "Damaged" ? "active" : ""
+                  formData.condition_status === "Under maintenance" ? "active" : ""
                 }`}
-                onClick={() => setStatus("Damaged")}
+                onClick={() => setStatus("Under maintenance")}
               >
-                Damaged
+                Under maintenance
               </button>
             </div>
           </div>

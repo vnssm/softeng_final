@@ -7,7 +7,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
     description: "",
     capacity: "",
     location: "",
-    status: "Available",
+    status: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,6 +22,14 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
         status:
           facility.condition_status ||
           (Number(facility.is_available) === 1 ? "Available" : "Unavailable"),
+      });
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        capacity: "",
+        location: "",
+        status: "",
       });
     }
   }, [facility, isAddMode]);
@@ -44,6 +52,18 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
       setError("Facility name is required.");
       return;
     }
+    if (!formData.description.trim()) {
+      setError("Facility description is required.");
+      return;
+    }
+    if (formData.capacity === "") {
+      setError("Facility capacity is required.");
+      return;
+    }
+    if (!formData.location.trim()) {
+      setError("Facility location is required.");
+      return;
+    }
     if (name.length > 150) {
       setError("Facility name must be 150 characters or fewer.");
       return;
@@ -53,10 +73,12 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
       return;
     }
     if (
-      capacity !== null &&
-      (!Number.isInteger(capacity) || capacity < 1 || capacity > 2147483647)
+      capacity === null ||
+      !Number.isInteger(capacity) ||
+      capacity < 1 ||
+      capacity > 1000
     ) {
-      setError("Capacity must be a positive whole number.");
+      setError("Capacity must be a whole number between 1 and 1000.");
       return;
     }
     if (!["Available", "Unavailable", "Under maintenance"].includes(formData.status)) {
@@ -116,7 +138,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-group">
-            <label>Facility Name</label>
+            <label>Facility Name *</label>
             <input
               type="text"
               name="name"
@@ -129,18 +151,19 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
           </div>
 
           <div className="form-group">
-            <label>Facility Description</label>
+            <label>Facility Description *</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
               placeholder="Enter description..."
               rows="4"
+              required
             />
           </div>
 
           <div className="form-group">
-            <label>Capacity</label>
+            <label>Capacity *</label>
             <input
               type="number"
               name="capacity"
@@ -148,13 +171,14 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
               onChange={handleChange}
               placeholder="e.g. 200"
               min="1"
-              max="2147483647"
+              max="1000"
               step="1"
+              required
             />
           </div>
 
           <div className="form-group">
-            <label>Location</label>
+            <label>Location *</label>
             <input
               type="text"
               name="location"
@@ -162,11 +186,12 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
               onChange={handleChange}
               placeholder="e.g. Main Campus"
               maxLength={150}
+              required
             />
           </div>
 
           <div className="form-group">
-            <label>State of facility</label>
+            <label>State of facility *</label>
             <div className="status-buttons">
               <button
                 type="button"

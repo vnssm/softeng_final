@@ -24,30 +24,26 @@ function FacilityReserveModal({ facility, onClose }) {
       [name]: value,
     }));
 
-    // Reset dependent fields if the start date changes
-    if (name === "startDate") {
-      setFormData((previousData) => ({
-        ...previousData,
-        startDate: value,
-        endDate: "",
-        startTime: "",
-        endTime: "",
-      }));
-    }
-
-    if (name === "startTime") {
-      setFormData((previousData) => ({
-        ...previousData,
-        startTime: value,
-        endTime: "",
-      }));
-    }
+    setMessage("");
+    setMessageType("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (loading || submitted) {
+      return;
+    }
+
+    if (
+      !formData.startDate ||
+      !formData.endDate ||
+      !formData.startTime ||
+      !formData.endTime ||
+      !formData.purpose.trim()
+    ) {
+      setMessage("Please complete all reservation fields.");
+      setMessageType("error");
       return;
     }
 
@@ -165,7 +161,7 @@ function FacilityReserveModal({ facility, onClose }) {
                 value={formData.endDate}
                 onChange={handleChange}
                 min={formData.startDate || undefined}
-                disabled={submitted || !formData.startDate}
+                disabled={submitted}
                 required
               />
             </div>
@@ -179,7 +175,7 @@ function FacilityReserveModal({ facility, onClose }) {
                 name="startTime"
                 value={formData.startTime}
                 onChange={handleChange}
-                disabled={submitted || !formData.startDate}
+                disabled={submitted}
                 required
               />
             </div>
@@ -196,7 +192,7 @@ function FacilityReserveModal({ facility, onClose }) {
                     ? formData.startTime || undefined
                     : undefined
                 }
-                disabled={submitted || !formData.startTime}
+                disabled={submitted}
                 required
               />
             </div>

@@ -123,7 +123,32 @@
 }
 
 .facility-status {
-  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
   font-size: 13px;
   color: #666;
+}
+
+.facility-status span {
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.facility-status.available span {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.facility-status.unavailable span {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.facility-status.under-maintenance span {
+  background: #fef3c7;
+  color: #92400e;
 }

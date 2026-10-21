@@ -3,6 +3,13 @@ import React, { useEffect, useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import "./AdminEquipmentModal.css";
 
+const normalizeConditionStatus = (status) => {
+  if (status === "Good") return "Available";
+  if (status === "Needs Repair") return "Under maintenance";
+  if (status === "Damaged") return "Unavailable";
+  return status;
+};
+
 function AdminEquipmentModal({
   equipment,
   isAddMode,
@@ -13,9 +20,9 @@ function AdminEquipmentModal({
     name: "",
     description: "",
     category: "",
-    quantity_total: 1,
+    quantity_total: "",
     location: "",
-    condition_status: "Good",
+    condition_status: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -29,16 +36,18 @@ function AdminEquipmentModal({
         category: equipment.category || "",
         quantity_total: equipment.quantity_total || 1,
         location: equipment.location || "",
-        condition_status: equipment.condition_status || "Good",
+        condition_status: normalizeConditionStatus(
+          equipment.condition_status || "Available"
+        ),
       });
     } else {
       setForm({
         name: "",
         description: "",
         category: "",
-        quantity_total: 1,
+        quantity_total: "",
         location: "",
-        condition_status: "Good",
+        condition_status: "",
       });
     }
 
@@ -56,8 +65,33 @@ function AdminEquipmentModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);
     setError("");
+
+    if (
+      !form.name.trim() ||
+      !form.category.trim() ||
+      !form.description.trim() ||
+      !form.location.trim()
+    ) {
+      setError("Please complete all equipment fields.");
+      return;
+    }
+
+    const quantity = Number(form.quantity_total);
+    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 500) {
+      setError("Quantity must be a whole number between 1 and 500.");
+      return;
+    }
+    if (
+      !["Available", "Unavailable", "Under maintenance"].includes(
+        form.condition_status
+      )
+    ) {
+      setError("Select an equipment condition.");
+      return;
+    }
+
+    setSaving(true);
 
     try {
       const token = localStorage.getItem("token");
@@ -146,13 +180,14 @@ function AdminEquipmentModal({
             </label>
 
             <label className="admin-equipment-full">
-              Description
+              Description *
               <textarea
                 name="description"
                 value={form.description}
                 onChange={handleChange}
                 placeholder="Enter equipment description"
                 rows="3"
+                required
               />
             </label>
 
@@ -164,19 +199,21 @@ function AdminEquipmentModal({
                 value={form.quantity_total}
                 onChange={handleChange}
                 min="1"
+                max="500"
                 step="1"
                 required
               />
             </label>
 
             <label>
-              Location
+              Location *
               <input
                 type="text"
                 name="location"
                 value={form.location}
                 onChange={handleChange}
                 placeholder="e.g. GSD Storage Room"
+                required
               />
             </label>
 
@@ -187,9 +224,9 @@ function AdminEquipmentModal({
 
               <div className="admin-equipment-status">
                 {[
-                  { value: "Good", label: "Available (Good)" },
-                  { value: "Needs Repair", label: "Under Maintenance" },
-                  { value: "Damaged", label: "Damaged" },
+                  { value: "Available", label: "Available" },
+                  { value: "Unavailable", label: "Unavailable" },
+                  { value: "Under maintenance", label: "Under maintenance" },
                 ].map((status) => (
                   <button
                     type="button"

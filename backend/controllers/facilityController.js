@@ -88,10 +88,10 @@ exports.createFacility = async (req, res) => {
       numericCapacity !== null &&
       (!Number.isInteger(numericCapacity) ||
         numericCapacity < 1 ||
-        numericCapacity > 2147483647)
+        numericCapacity > 1000)
     ) {
       return res.status(400).json({
-        message: "Capacity must be a positive whole number.",
+        message: "Capacity must be a whole number between 1 and 1000.",
       });
     }
 
@@ -227,10 +227,12 @@ exports.updateFacility = async (req, res) => {
       capacity !== undefined &&
       capacity !== null &&
       capacity !== "" &&
-      (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)
+      (!Number.isInteger(Number(capacity)) ||
+        Number(capacity) < 1 ||
+        Number(capacity) > 1000)
     ) {
       return res.status(400).json({
-        message: "Capacity must be a positive whole number",
+        message: "Capacity must be a whole number between 1 and 1000.",
       });
     }
 
