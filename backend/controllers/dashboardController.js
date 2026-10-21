@@ -197,27 +197,27 @@ exports.getPersonnelDashboard = async (req, res) => {
 
 exports.getAdminDashboard = async (req, res) => {
   try {
-    // Count active user accounts
+    // 1. Count active user accounts
     const [users] = await pool.query(
       "SELECT COUNT(*) AS count FROM users WHERE is_active = 1"
     );
 
-    // Count registered equipment
+    // 2. Count registered equipment
     const [equipment] = await pool.query(
       "SELECT COUNT(*) AS count FROM equipment"
     );
 
-    // Count all borrowing and facility requests
+    // 3. Count all transactions
     const [transactions] = await pool.query(
       "SELECT COUNT(*) AS count FROM requests"
     );
 
-    // Count registered facilities
+    // 4. Count registered facilities
     const [facilities] = await pool.query(
       "SELECT COUNT(*) AS count FROM facilities"
     );
 
-    // Count active equipment borrowings
+    // 5. Count active equipment borrowings
     const [activeBorrowings] = await pool.query(
       `SELECT COUNT(*) AS count
        FROM requests
@@ -225,7 +225,7 @@ exports.getAdminDashboard = async (req, res) => {
        AND status IN ('for_delivery', 'for_pickup', 'ongoing')`
     );
 
-    // Count upcoming approved facility reservations
+    // 6. Count upcoming approved facility reservations
     const [upcomingReservations] = await pool.query(
       `SELECT COUNT(*) AS count
        FROM requests
@@ -234,13 +234,33 @@ exports.getAdminDashboard = async (req, res) => {
        AND date_needed >= CURDATE()`
     );
 
-    // Count overdue transactions
+    // 7. Count overdue transactions
     const [overdue] = await pool.query(
       `SELECT COUNT(*) AS count
        FROM requests
        WHERE status = 'overdue'`
     );
 
+    // 8. Get recent system activities
+    const [activities] = await pool.query(
+      `SELECT
+         a.id,
+         CONCAT(
+           COALESCE(CONCAT(u.first_name, ' ', u.last_name), 'System'),
+           ': ',
+           a.description
+         ) AS title,
+         DATE_FORMAT(
+           a.created_at,
+           '%b %d, %Y %h:%i %p'
+         ) AS time
+       FROM activity_logs a
+       LEFT JOIN users u ON u.id = a.user_id
+       ORDER BY a.created_at DESC
+       LIMIT 10`
+    );
+
+    // 9. Send dashboard data to the frontend
     res.status(200).json({
       stats: {
         totalUsers: users[0].count,
@@ -253,10 +273,12 @@ exports.getAdminDashboard = async (req, res) => {
         upcomingReservations: upcomingReservations[0].count,
         overdueTransactions: overdue[0].count,
       },
-      systemActivity: [],
+      systemActivity: activities,
     });
+
   } catch (error) {
     console.error("Admin Dashboard error:", error);
+
     res.status(500).json({
       message: "Failed to load admin dashboard",
     });

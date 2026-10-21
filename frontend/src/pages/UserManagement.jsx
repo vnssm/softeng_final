@@ -128,10 +128,16 @@ function UserManagement() {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
+    // Contact number: numbers only, maximum 11 digits
+    const newValue =
+      name === "contact_number"
+        ? value.replace(/[^0-9]/g, "").slice(0, 11)
+        : value;
+
     if (name === "role") {
       setForm({
         ...form,
-        role: value,
+        role: newValue,
         student_id: "",
         employee_id: "",
         admin_id: "",
@@ -139,7 +145,7 @@ function UserManagement() {
     } else {
       setForm({
         ...form,
-        [name]: value,
+        [name]: newValue,
       });
     }
   };
@@ -385,9 +391,11 @@ function UserManagement() {
                 <label>
                   First Name *
                   <input
+                    type="text"
                     name="first_name"
                     value={form.first_name}
                     onChange={handleChange}
+                    maxLength={100}
                     required
                   />
                 </label>
@@ -398,6 +406,7 @@ function UserManagement() {
                     name="last_name"
                     value={form.last_name}
                     onChange={handleChange}
+                    maxLength={100}
                     required
                   />
                 </label>
@@ -409,6 +418,7 @@ function UserManagement() {
                     name="email"
                     value={form.email}
                     onChange={handleChange}
+                    maxLength={150}
                     required
                   />
                 </label>
@@ -423,6 +433,7 @@ function UserManagement() {
                       value={form.password}
                       onChange={handleChange}
                       minLength={8}
+                      maxLength={72}
                       required
                     />
                   </label>
@@ -443,11 +454,18 @@ function UserManagement() {
                 </label>
 
                 <label>
-                  Contact Number
+                  Contact Number *
                   <input
+                    type="tel"
                     name="contact_number"
                     value={form.contact_number}
                     onChange={handleChange}
+                    inputMode="numeric"
+                    pattern="[0-9]{11}"
+                    minLength={11}
+                    maxLength={11}
+                    placeholder="e.g. 09991991909"
+                    required
                   />
                 </label>
 
@@ -489,10 +507,14 @@ function UserManagement() {
 
                 <label className="user-form-full">
                   College / Department
+                  {form.role === "borrower" ? " *" : ""}
+
                   <input
                     name="college_department"
                     value={form.college_department}
                     onChange={handleChange}
+                    maxLength={150}
+                    required={form.role === "borrower"}
                   />
                 </label>
               </div>

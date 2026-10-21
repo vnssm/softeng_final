@@ -1,8 +1,10 @@
+
 const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
 
 const allowedRoles = ["borrower", "personnel", "admin"];
 
+// Record account activity
 const logAccountActivity = async (userId, actionType, description) => {
   try {
     await pool.query(
@@ -14,6 +16,139 @@ const logAccountActivity = async (userId, actionType, description) => {
   } catch (error) {
     console.error("Account activity log error:", error.message);
   }
+};
+
+// Validate user information
+const validateUserInput = (data, isEditing = false) => {
+  if (!data || typeof data !== "object") {
+    return "Invalid user information.";
+  }
+
+  const {
+    first_name,
+    last_name,
+    email,
+    password,
+    role,
+    student_id,
+    employee_id,
+    admin_id,
+    college_department,
+    contact_number,
+  } = data;
+
+  if (
+    typeof first_name !== "string" ||
+    typeof last_name !== "string" ||
+    typeof email !== "string" ||
+    !role
+  ) {
+    return "Please complete all required fields.";
+  }
+
+  const firstName = first_name.trim();
+  const lastName = last_name.trim();
+  const cleanEmail = email.trim();
+
+  if (!firstName || !lastName || !cleanEmail) {
+    return "First name, last name, and email are required.";
+  }
+
+  // Validate names
+  if (firstName.length > 100 || lastName.length > 100) {
+    return "Names must not exceed 100 characters.";
+  }
+
+  if (
+    !/^[\p{L}\p{M} .'-]+$/u.test(firstName) ||
+    !/^[\p{L}\p{M} .'-]+$/u.test(lastName)
+  ) {
+    return "Names may contain letters, spaces, apostrophes, periods, and hyphens only.";
+  }
+
+  // Validate email
+  if (
+    cleanEmail.length > 150 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)
+  ) {
+    return "Please enter a valid email address.";
+  }
+
+  // Validate role
+  if (!allowedRoles.includes(role)) {
+    return "Please select a valid user type.";
+  }
+
+  // Validate password when creating an account
+  if (!isEditing) {
+    if (typeof password !== "string" || !password.trim()) {
+      return "Password is required.";
+    }
+
+    if (password.length < 8) {
+      return "Password must be at least 8 characters long.";
+    }
+
+    if (password.length > 72) {
+      return "Password must not exceed 72 characters.";
+    }
+  }
+
+  // Validate the ID required for each role
+  if (role === "borrower") {
+    if (typeof student_id !== "string" || !student_id.trim()) {
+      return "Student ID is required for borrowers.";
+    }
+
+    if (student_id.trim().length > 50) {
+      return "Student ID must not exceed 50 characters.";
+    }
+
+    if (
+      typeof college_department !== "string" ||
+      !college_department.trim()
+    ) {
+      return "College / Department is required for borrowers.";
+    }
+  }
+
+  if (role === "personnel") {
+    if (typeof employee_id !== "string" || !employee_id.trim()) {
+      return "Employee ID is required for GSD personnel.";
+    }
+
+    if (employee_id.trim().length > 50) {
+      return "Employee ID must not exceed 50 characters.";
+    }
+  }
+
+  if (role === "admin") {
+    if (typeof admin_id !== "string" || !admin_id.trim()) {
+      return "Admin ID is required for administrators.";
+    }
+
+    if (admin_id.trim().length > 50) {
+      return "Admin ID must not exceed 50 characters.";
+    }
+  }
+
+  // Contact number must contain exactly 11 digits
+  if (
+    typeof contact_number !== "string" ||
+    !/^[0-9]{11}$/.test(contact_number)
+  ) {
+    return "Contact number must contain exactly 11 digits.";
+  }
+
+  // Validate college/department length
+  if (
+    college_department &&
+    college_department.length > 150
+  ) {
+    return "College / Department must not exceed 150 characters.";
+  }
+
+  return "";
 };
 
 // GET ALL USERS
@@ -60,42 +195,15 @@ exports.createUser = async (req, res) => {
       contact_number,
     } = req.body;
 
-    if (!first_name || !last_name || !email || !password || !role) {
+    const validationError = validateUserInput(req.body);
+
+    if (validationError) {
       return res.status(400).json({
-        message: "Please complete all required fields.",
+        message: validationError,
       });
     }
 
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({ message: "Invalid user role." });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        message: "Password must be at least 8 characters long.",
-      });
-    }
-
-    // Require the ID that matches the selected role.
-    if (role === "borrower" && !student_id?.trim()) {
-      return res.status(400).json({
-        message: "Student ID is required for borrowers.",
-      });
-    }
-
-    if (role === "personnel" && !employee_id?.trim()) {
-      return res.status(400).json({
-        message: "Employee ID is required for GSD personnel.",
-      });
-    }
-
-    if (role === "admin" && !admin_id?.trim()) {
-      return res.status(400).json({
-        message: "Admin ID is required for administrators.",
-      });
-    }
-
-    // Only save the ID that matches the selected role.
+    // Save only the ID matching the selected role
     const savedStudentId =
       role === "borrower" ? student_id.trim() : null;
 
@@ -105,6 +213,7 @@ exports.createUser = async (req, res) => {
     const savedAdminId =
       role === "admin" ? admin_id.trim() : null;
 
+    // Check for duplicate email
     const [existingUsers] = await pool.query(
       "SELECT id FROM users WHERE email = ?",
       [email.trim()]
@@ -141,8 +250,10 @@ exports.createUser = async (req, res) => {
         email.trim(),
         hashedPassword,
         role,
-        college_department || null,
-        contact_number || null,
+        college_department && college_department.trim()
+          ? college_department.trim()
+          : null,
+        contact_number,
       ]
     );
 
@@ -185,32 +296,11 @@ exports.updateUser = async (req, res) => {
       contact_number,
     } = req.body;
 
-    if (!first_name || !last_name || !email || !role) {
-      return res.status(400).json({
-        message: "Please complete all required fields.",
-      });
-    }
+    const validationError = validateUserInput(req.body, true);
 
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({ message: "Invalid user role." });
-    }
-
-    // Require the ID that matches the selected role.
-    if (role === "borrower" && !student_id?.trim()) {
+    if (validationError) {
       return res.status(400).json({
-        message: "Student ID is required for borrowers.",
-      });
-    }
-
-    if (role === "personnel" && !employee_id?.trim()) {
-      return res.status(400).json({
-        message: "Employee ID is required for GSD personnel.",
-      });
-    }
-
-    if (role === "admin" && !admin_id?.trim()) {
-      return res.status(400).json({
-        message: "Admin ID is required for administrators.",
+        message: validationError,
       });
     }
 
@@ -220,10 +310,12 @@ exports.updateUser = async (req, res) => {
     );
 
     if (existingRows.length === 0) {
-      return res.status(404).json({ message: "User not found." });
+      return res.status(404).json({
+        message: "User not found.",
+      });
     }
 
-    // Prevent an administrator from changing their own role.
+    // Prevent an administrator from changing their own role
     if (
       Number(req.user.id) === Number(userId) &&
       role !== "admin"
@@ -233,6 +325,7 @@ exports.updateUser = async (req, res) => {
       });
     }
 
+    // Check for duplicate email
     const [duplicateEmails] = await pool.query(
       "SELECT id FROM users WHERE email = ? AND id != ?",
       [email.trim(), userId]
@@ -244,8 +337,7 @@ exports.updateUser = async (req, res) => {
       });
     }
 
-    // Set the other role-specific IDs to NULL.
-    // This prevents old IDs from remaining after a role change.
+    // Clear IDs that do not match the selected role
     const savedStudentId =
       role === "borrower" ? student_id.trim() : null;
 
@@ -275,8 +367,10 @@ exports.updateUser = async (req, res) => {
         last_name.trim(),
         email.trim(),
         role,
-        college_department || null,
-        contact_number || null,
+        college_department && college_department.trim()
+          ? college_department.trim()
+          : null,
+        contact_number,
         userId,
       ]
     );
