@@ -42,7 +42,9 @@ function BorrowerFacilities() {
           // Consistent status resolution
           let status = "Unavailable";
 
-          if (
+          if (Number(facility.is_active) !== 1) {
+            status = "Unavailable";
+          } else if (
             facility.condition_status &&
             ["Available", "Unavailable", "Under maintenance"].includes(
               facility.condition_status
@@ -174,8 +176,13 @@ function BorrowerFacilities() {
                     {facility.description || "No description available."}
                   </p>
 
-                  <p className="facility-status">
-                    Status: {getFacilityStatus(facility)}
+                  <p
+                    className={`facility-status ${getFacilityStatus(facility)
+                      .toLowerCase()
+                      .replaceAll(" ", "-")}`}
+                  >
+                    Status:
+                    <span>{getFacilityStatus(facility)}</span>
                   </p>
                 </div>
 

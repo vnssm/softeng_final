@@ -56,7 +56,12 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
   }, [equipment, isAddMode]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setError("");
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      [name]: value,
+    }));
   };
 
   const setStatus = (status) => {
@@ -97,6 +102,10 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
     }
     if (!formData.location.trim()) {
       setError("Equipment location is required.");
+      return;
+    }
+    if (isAddMode && !selectedImage) {
+      setError("Equipment photo is required.");
       return;
     }
     if (name.length > 150) {
@@ -256,8 +265,13 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
           </div>
 
           <div className="form-group">
-            <label>Equipment Photo</label>
-            <input type="file" accept="image/*" onChange={handleImageChange} />
+            <label>Equipment Photo {isAddMode ? "*" : ""}</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              required={isAddMode}
+            />
             {previewUrl && (
               <div style={{ marginTop: "10px" }}>
                 <img

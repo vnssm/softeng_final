@@ -87,6 +87,9 @@ exports.createEquipment = [
       } = body;
       const name = typeof body.name === "string" ? body.name.trim() : "";
 
+      if (!req.file) {
+        return res.status(400).json({ message: "Equipment photo is required." });
+      }
       if (!name) {
         return res.status(400).json({ message: "Equipment name is required." });
       }
@@ -138,9 +141,7 @@ exports.createEquipment = [
         });
       }
 
-      const imageUrl = req.file
-        ? `/uploads/equipment/${req.file.filename}`
-        : null;
+      const imageUrl = `/uploads/equipment/${req.file.filename}`;
       const [result] = await pool.query(
         `INSERT INTO equipment
           (name, description, category, quantity_total,

@@ -55,6 +55,14 @@
   margin-bottom: 12px;
 }
 
+.equipment-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
 .image-placeholder {
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -98,6 +106,12 @@
 .equipment-btn.unavailable {
   background: #d1d5db;
   color: #6b7280;
+  cursor: not-allowed;
+}
+
+.equipment-btn.maintenance {
+  background: #fef3c7;
+  color: #92400e;
   cursor: not-allowed;
 }
 

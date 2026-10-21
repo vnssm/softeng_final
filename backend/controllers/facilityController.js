@@ -94,6 +94,9 @@ exports.createFacility = [
         capacity === "" || capacity == null ? null : Number(capacity);
       const status = body.condition_status ?? "Available";
 
+      if (!req.file) {
+        return res.status(400).json({ message: "Facility photo is required." });
+      }
       if (!name) {
         return res.status(400).json({ message: "Facility name is required." });
       }
@@ -134,9 +137,7 @@ exports.createFacility = [
         });
       }
 
-      const imageUrl = req.file
-        ? `/uploads/facilities/${req.file.filename}`
-        : null;
+      const imageUrl = `/uploads/facilities/${req.file.filename}`;
       const isAvailable = status === "Available" ? 1 : 0;
       const [result] = await pool.query(
         `INSERT INTO facilities

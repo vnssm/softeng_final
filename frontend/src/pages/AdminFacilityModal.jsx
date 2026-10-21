@@ -44,32 +44,16 @@ function AdminFacilityModal({
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setForm({
-      ...form,
+    setForm((currentForm) => ({
+      ...currentForm,
       [name]: value,
-    });
+    }));
     setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-<<<<<<< HEAD
     const name = form.name.trim();
-    const capacity = form.capacity.trim();
-
-    if (!name) {
-      setError("Facility name is required.");
-      return;
-    }
-
-    if (capacity && (!/^\d+$/.test(capacity) || Number(capacity) < 1)) {
-      setError("Capacity must be a positive whole number.");
-      return;
-    }
-
-    setSaving(true);
-=======
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
     setError("");
 
     if (
@@ -87,7 +71,10 @@ function AdminFacilityModal({
       setError("Capacity must be a whole number between 1 and 1000.");
       return;
     }
-    if (![0, 1].includes(Number(form.is_available))) {
+    if (
+      form.is_available === "" ||
+      ![0, 1].includes(Number(form.is_available))
+    ) {
       setError("Select facility availability.");
       return;
     }
@@ -109,13 +96,8 @@ function AdminFacilityModal({
         },
         body: JSON.stringify({
           ...form,
-<<<<<<< HEAD
           name,
-          capacity:
-            capacity === "" ? null : Number(capacity),
-=======
           capacity,
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
           is_available: Number(form.is_available),
         }),
       });

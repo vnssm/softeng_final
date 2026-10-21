@@ -27,20 +27,15 @@ const isValidDate = (value) => {
 };
 
 function BorrowModal({ equipment, onClose, onSuccess }) {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-  const minDate = tomorrow.toISOString().split("T")[0];
-
   const [formData, setFormData] = useState({
-    quantity: "1",
+    quantity: "",
     startDate: "",
     endDate: "",
     startTime: "",
     endTime: "",
     purpose: "",
     location: "",
-    fulfillmentType: "pickup",
+    fulfillmentType: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -50,7 +45,6 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-<<<<<<< HEAD
 
     setFormData((previousData) => {
       const nextData = { ...previousData, [name]: value };
@@ -67,13 +61,6 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
 
       return nextData;
     });
-
-=======
-    setFormData((previousData) => ({
-      ...previousData,
-      [name]: value,
-    }));
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
     setMessage("");
     setMessageType("");
   };
@@ -87,55 +74,23 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
       return;
     }
 
-<<<<<<< HEAD
-    const startDateValue = new Date(`${formData.startDate}T00:00:00`);
-    const endDateValue = new Date(`${formData.endDate}T00:00:00`);
-
-    if (Number.isNaN(startDateValue.getTime()) || Number.isNaN(endDateValue.getTime())) {
-      setMessage("Invalid borrowing date. Please select a valid date.");
-=======
     const quantity = Number(formData.quantity);
     if (!Number.isSafeInteger(quantity) || quantity < 1) {
       setMessage("Quantity must be a whole number of at least 1.");
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
       setMessageType("error");
       return;
     }
 
-<<<<<<< HEAD
-    const earliestAllowedDate = new Date(`${minDate}T00:00:00`);
-
-    if (startDateValue < earliestAllowedDate || endDateValue < earliestAllowedDate) {
-      setMessage("Borrowing date must be tomorrow or in the future.");
-=======
     const availableQuantity = Number(equipment.quantity_available);
     if (
       Number.isFinite(availableQuantity) &&
       quantity > availableQuantity
     ) {
       setMessage("Requested quantity exceeds the available quantity.");
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
       setMessageType("error");
       return;
     }
 
-<<<<<<< HEAD
-    const toMinutes = (timeValue) => {
-      const [hours, minutes] = (timeValue || "").split(":").map(Number);
-
-      if (Number.isNaN(hours) || Number.isNaN(minutes)) {
-        return null;
-      }
-
-      return hours * 60 + minutes;
-    };
-
-    const startMinutes = toMinutes(formData.startTime);
-    const endMinutes = toMinutes(formData.endTime);
-
-    if (startMinutes === null || endMinutes === null) {
-      setMessage("Please choose valid start and end times.");
-=======
     if (
       !formData.startDate ||
       !formData.endDate ||
@@ -143,15 +98,10 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
       !formData.endTime
     ) {
       setMessage("Please complete the borrowing dates and times.");
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
       setMessageType("error");
       return;
     }
 
-<<<<<<< HEAD
-    if (startMinutes < 7 * 60 || endMinutes > 17 * 60 || endMinutes <= startMinutes) {
-      setMessage("Borrowing time must be between 7:00 AM and 5:00 PM, and the end time must be later than the start time.");
-=======
     if (
       !isValidDate(formData.startDate) ||
       !isValidDate(formData.endDate) ||
@@ -165,7 +115,6 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
 
     if (formData.startDate < getNextLocalDate()) {
       setMessage("Start date must be tomorrow or a future date.");
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
       setMessageType("error");
       return;
     }
@@ -210,6 +159,12 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
     const location = formData.location.trim();
     if (location.length < 3) {
       setMessage("Please enter a location with at least 3 characters.");
+      setMessageType("error");
+      return;
+    }
+
+    if (!["pickup", "delivery"].includes(formData.fulfillmentType)) {
+      setMessage("Please select a fulfillment type.");
       setMessageType("error");
       return;
     }
@@ -312,11 +267,7 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-<<<<<<< HEAD
-                min={minDate}
-=======
                 min={getNextLocalDate()}
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
                 disabled={submitted}
                 required
               />
@@ -329,13 +280,8 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
-<<<<<<< HEAD
-                min={formData.startDate || minDate}
-                disabled={submitted || !formData.startDate}
-=======
                 min={formData.startDate || getNextLocalDate()}
                 disabled={submitted}
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
                 required
               />
             </div>
@@ -349,15 +295,9 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 name="startTime"
                 value={formData.startTime}
                 onChange={handleChange}
-<<<<<<< HEAD
-                min="07:00"
-                max="17:00"
-                disabled={submitted || !formData.startDate}
-=======
                 min="07:30"
                 max="17:00"
                 disabled={submitted}
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
                 required
               />
             </div>
@@ -370,15 +310,6 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 value={formData.endTime}
                 onChange={handleChange}
                 min={
-<<<<<<< HEAD
-                  formData.startDate &&
-                  formData.startDate === formData.endDate
-                    ? formData.startTime || undefined
-                    : "07:00"
-                }
-                max="17:00"
-                disabled={submitted || !formData.startDate || !formData.startTime}
-=======
                   formData.startDate === formData.endDate
                     ? formData.startTime > "07:30"
                       ? formData.startTime
@@ -387,7 +318,6 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
                 }
                 max="17:00"
                 disabled={submitted}
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
                 required
               />
             </div>
@@ -432,6 +362,7 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
               disabled={submitted}
               required
             >
+              <option value="">Select fulfillment type</option>
               <option value="pickup">Pickup</option>
               <option value="delivery">Delivery</option>
             </select>

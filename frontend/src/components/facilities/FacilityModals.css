@@ -54,6 +54,15 @@
   margin-bottom: 16px;
 }
 
+.facility-modal-photo {
+  display: block;
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
 .facility-view-modal {
   max-width: 600px;
   border-radius: 20px;
@@ -133,7 +142,6 @@
   background: #054a08;
 }
 
-<<<<<<< HEAD
 .reserve-btn.disabled-reserve {
   background: #a0a0a0;
   color: white;
@@ -149,14 +157,12 @@
   font-size: 17px;
 }
 
-=======
 .reserve-btn:disabled {
   background: #d1d5db;
   color: #6b7280;
   cursor: not-allowed;
 }
 
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
 /* Reserve Modal Form */
 .modal-form {
   padding: 10px 24px 24px;

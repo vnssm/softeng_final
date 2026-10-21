@@ -57,10 +57,11 @@ function AdminEquipmentModal({
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setForm({
-      ...form,
+    setError("");
+    setForm((currentForm) => ({
+      ...currentForm,
       [name]: value,
-    });
+    }));
   };
 
   const handleSubmit = async (e) => {

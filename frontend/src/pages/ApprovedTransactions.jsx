@@ -42,22 +42,9 @@ function ApprovedTransactions() {
         ? data
         : data.requests || [];
 
-<<<<<<< HEAD
-      // Show approved requests only.
-      const approvedRequests = requests.filter((request) => {
-        const status = String(request.status || "").toLowerCase();
-        return [
-          "approved",
-          "for_delivery",
-          "for_pickup",
-          "ongoing",
-        ].includes(status);
-      });
-=======
       const approvedRequests = requests.filter((request) =>
         APPROVED_STATUSES.has(String(request.status || "").toLowerCase())
       );
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
 
       setTransactions(approvedRequests);
     } catch (err) {

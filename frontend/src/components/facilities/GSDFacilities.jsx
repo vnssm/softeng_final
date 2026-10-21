@@ -10,13 +10,8 @@ function GSDFacilities() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddMode, setIsAddMode] = useState(false);
   const [loading, setLoading] = useState(true);
-<<<<<<< HEAD
   const [isHeaderCompact, setIsHeaderCompact] = useState(false);
-
-  const token = localStorage.getItem("token");
-=======
   const [error, setError] = useState("");
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
 
   const fetchFacilities = async () => {
     try {

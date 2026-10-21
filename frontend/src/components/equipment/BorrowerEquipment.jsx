@@ -46,8 +46,10 @@ function BorrowerEquipment() {
           available: "Available",
           unavailable: "Unavailable",
           under_maintenance: "Under maintenance",
-        }[rawConditionStatus] || "Unavailable";
-        const status = conditionStatus;
+        }[rawConditionStatus] ||
+          (Number(item.is_available) === 1 ? "Available" : "Unavailable");
+        const status =
+          Number(item.is_active) !== 1 ? "Unavailable" : conditionStatus;
         const available =
           status === "Available" &&
           Number(item.is_active) === 1 &&
@@ -125,7 +127,15 @@ function BorrowerEquipment() {
                 className="equipment-card"
               >
                 <div className="equipment-image">
-                  <div className="image-placeholder"></div>
+                  {item.image_url ? (
+                    <img
+                      src={`http://localhost:5000${item.image_url}`}
+                      alt={item.name}
+                      className="equipment-photo"
+                    />
+                  ) : (
+                    <div className="image-placeholder"></div>
+                  )}
                 </div>
 
                 <div className="equipment-name">
@@ -147,7 +157,9 @@ function BorrowerEquipment() {
                   className={`equipment-btn ${
                     item.available
                       ? "available"
-                      : "unavailable"
+                      : item.status === "Under maintenance"
+                        ? "maintenance"
+                        : "unavailable"
                   }`}
                   onClick={() => handleView(item)}
                   disabled={!item.available}

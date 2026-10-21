@@ -2,10 +2,11 @@ import React from "react";
 import "./FacilityModals.css";
 
 function FacilityViewModal({ facility, onClose, onReserve }) {
-  const isAvailable = Number(facility?.is_available) === 1;
   const status =
+    facility?.condition_status ||
     facility?.status ||
-    (isAvailable ? "Available" : "Unavailable");
+    (Number(facility?.is_available) === 1 ? "Available" : "Unavailable");
+  const isAvailable = status === "Available";
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -17,7 +18,15 @@ function FacilityViewModal({ facility, onClose, onReserve }) {
 
         <div className="modal-body facility-view-body">
           <div className="facility-modal-image">
-            <div className="image-placeholder large"></div>
+            {facility?.image_url ? (
+              <img
+                className="facility-modal-photo"
+                src={`http://localhost:5000${facility.image_url}`}
+                alt={facility.name || "Facility"}
+              />
+            ) : (
+              <div className="image-placeholder large"></div>
+            )}
           </div>
 
           <div className="facility-modal-info">
@@ -26,38 +35,23 @@ function FacilityViewModal({ facility, onClose, onReserve }) {
 
             <div className="status-row">
               <span>Status:</span>
-<<<<<<< HEAD
-              <span className={`status-badge ${status === "Available" ? "available" : "using"}`}>
-                {status}
-=======
               <span
-                className={`status-badge ${facility?.status
-                  ?.toLowerCase()
-                  .replaceAll(" ", "-") || "unavailable"}`}
+                className={`status-badge ${status
+                  .toLowerCase()
+                  .replaceAll(" ", "-")}`}
               >
-                {facility?.status}
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
+                {status}
               </span>
             </div>
           </div>
 
           <button
-<<<<<<< HEAD
             className={`reserve-btn facility-view-reserve ${isAvailable ? "" : "disabled-reserve"}`}
             onClick={isAvailable ? onReserve : undefined}
             disabled={!isAvailable}
             aria-disabled={!isAvailable}
           >
-            Reserve
-=======
-            className="reserve-btn"
-            onClick={onReserve}
-            disabled={facility?.status !== "Available"}
-          >
-            {facility?.status === "Available"
-              ? "Reserve"
-              : "Reservations Unavailable"}
->>>>>>> 6b3efdd1d5509a8a5b00a5a1d1005ad9fdd29b6a
+            {isAvailable ? "Reserve" : "Reservations Unavailable"}
           </button>
         </div>
       </div>
