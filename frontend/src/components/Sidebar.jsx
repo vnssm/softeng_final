@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import "./sidebar.css";
+import "./Sidebar.css";
 import { API_URL } from "../config";
 
 function Sidebar({ isOpen, onClose, role = "borrower" }) {

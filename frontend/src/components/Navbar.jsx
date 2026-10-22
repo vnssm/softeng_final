@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaBell, FaChevronDown, FaBars } from "react-icons/fa";
-import "./navbar.css";
+import "./Navbar.css";
 import { API_URL, API_BASE } from "../config";
 
 function Navbar({ onToggleSidebar }) {
