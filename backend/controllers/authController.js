@@ -65,12 +65,13 @@ exports.login = async (req, res) => {
       });
     }
 
-    await pool.query(
-      "UPDATE users SET last_login_at = NOW() WHERE id = ?",
-      [user.id]
-    );
+    pool
+      .query("UPDATE users SET last_login_at = NOW() WHERE id = ?", [user.id])
+      .catch((error) => {
+        console.error("Last login update error:", error.message);
+      });
 
-    await saveAuditLog(user.id, "User Login", req);
+    void saveAuditLog(user.id, "User Login", req);
 
     const token = jwt.sign(
       {
@@ -120,4 +121,3 @@ exports.logout = async (req, res) => {
     message: "Logout recorded successfully",
   });
 };
-

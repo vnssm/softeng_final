@@ -23,14 +23,30 @@ const equipmentUpload = multer({
   storage: equipmentStorage,
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
+    const extension = path.extname(file.originalname).toLowerCase();
+    const isAllowedImage =
+      [".jpg", ".jpeg"].includes(extension) && file.mimetype === "image/jpeg";
+    const isAllowedPng =
+      extension === ".png" && file.mimetype === "image/png";
+
+    if (isAllowedImage || isAllowedPng) {
       cb(null, true);
       return;
     }
 
-    cb(new Error("Only image files are allowed."));
+    cb(new Error("Only JPG, JPEG, and PNG files are allowed."));
   },
 });
+
+const uploadEquipmentImage = (req, res, next) => {
+  equipmentUpload.single("image")(req, res, (error) => {
+    if (error) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    next();
+  });
+};
 
 const validConditionStatuses = [
   "Available",
@@ -74,7 +90,7 @@ exports.getEquipmentById = async (req, res) => {
 };
 
 exports.createEquipment = [
-  equipmentUpload.single("image"),
+  uploadEquipmentImage,
   async (req, res) => {
     try {
       const body = req.body || {};
@@ -185,7 +201,7 @@ exports.createEquipment = [
 ];
 
 exports.updateEquipment = [
-  equipmentUpload.single("image"),
+  uploadEquipmentImage,
   async (req, res) => {
     try {
       const { id } = req.params;

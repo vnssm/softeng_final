@@ -2,7 +2,6 @@
 const db = require("../config/db");
 
 const { logActivity } = require("./activityController");
-const { notifyGSDPersonnel } = require("./notificationController");
 
 // Create a new equipment borrowing request
 exports.createBorrowing = async (req, res) => {
@@ -315,6 +314,7 @@ exports.getMyBorrowings = async (req, res) => {
        INNER JOIN equipment e ON ri.equipment_id = e.id
        WHERE r.user_id = ?
          AND r.request_type = 'equipment'
+         AND LOWER(TRIM(COALESCE(r.status, ''))) NOT IN ('return', 'returned', 'completed', 'completed_with_issue')
        ORDER BY r.created_at DESC`,
       [userId]
     );
@@ -396,20 +396,28 @@ exports.returnBorrowing = async (req, res) => {
         userId,
         "Return Submitted",
         "Your equipment request " + request.request_code +
-          " has been marked as returned and is awaiting inspection by GSD personnel.",
+          " has been marked as returned.",
         "success",
         "request_returned",
         requestId
       ]
     );
 
-    await notifyGSDPersonnel({
-      title: "Equipment Returned",
-      message: `Equipment request ${request.request_code} has been returned and is awaiting inspection.`,
-      type: "warning",
-      eventType: "request_returned",
-      requestId,
-    });
+    await connection.query(
+      `INSERT INTO notifications
+       (user_id, title, message, type, event_type, related_request_id)
+       SELECT id, ?, ?, ?, ?, ?
+       FROM users
+       WHERE role IN ('personnel', 'admin')
+         AND is_active = 1`,
+      [
+        "Equipment Returned",
+        `Equipment request ${request.request_code} has been marked as returned.`,
+        "warning",
+        "request_returned",
+        requestId,
+      ]
+    );
 
     await connection.commit();
 

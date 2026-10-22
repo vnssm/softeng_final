@@ -254,6 +254,14 @@ exports.updateFacility = [
           : nextStatus === "Available"
             ? 1
             : 0;
+      const nextActive =
+        nextStatus === undefined
+          ? is_active === undefined
+            ? null
+            : Number(is_active) === 1
+              ? 1
+              : 0
+          : 1;
       const imageUrl = req.file
         ? `/uploads/facilities/${req.file.filename}`
         : oldValues.image_url || null;
@@ -277,11 +285,7 @@ exports.updateFacility = [
           imageUrl,
           nextStatus ?? null,
           nextAvailability,
-          is_active === undefined
-            ? null
-            : Number(is_active) === 1
-              ? 1
-              : 0,
+          nextActive,
           id,
         ]
       );

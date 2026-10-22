@@ -55,30 +55,24 @@ function Sidebar({ isOpen, onClose, role = "borrower" }) {
     return location.pathname === path;
   };
 
-  // Record logout before clearing the login token
-  const handleLogout = async () => {
+  const handleLogout = () => {
     const token =
       localStorage.getItem("token") ||
       sessionStorage.getItem("token");
 
     if (token) {
-      try {
-        const response = await fetch(
-          "http://localhost:5000/api/auth/logout",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
+      fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }).then((response) => {
         if (!response.ok) {
           console.error("Failed to record logout.");
         }
-      } catch (error) {
+      }).catch((error) => {
         console.error("Logout audit request failed:", error);
-      }
+      });
     }
 
     // Clear saved login information

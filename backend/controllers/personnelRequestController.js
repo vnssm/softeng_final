@@ -526,10 +526,9 @@ exports.inspectReturn = async (req, res) => {
       });
     }
 
-    // A damage or issue description is required.
-    if (returnCondition !== "Normal" && !inspectionNotes) {
+    if (!inspectionNotes) {
       return res.status(400).json({
-        message: "Please describe the damage or issue found."
+        message: "Please enter the inspection results."
       });
     }
 
@@ -653,5 +652,3 @@ exports.inspectReturn = async (req, res) => {
     }
   }
 };
-
-

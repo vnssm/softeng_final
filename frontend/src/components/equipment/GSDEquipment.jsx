@@ -89,11 +89,7 @@ function GSDEquipment() {
                   <img
                     src={`http://localhost:5000${item.image_url}`}
                     alt={item.name}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
+                    className="equipment-photo"
                   />
                 ) : (
                   <div className="image-placeholder"></div>

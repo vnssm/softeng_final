@@ -4,6 +4,22 @@ import { Navigate, useNavigate } from "react-router-dom";
 import "./Requests.css";
 import { FaLayerGroup, FaMapMarkerAlt, FaCalendarAlt } from "react-icons/fa";
 
+const hiddenRequestStatuses = new Set([
+  "return",
+  "returned",
+  "completed",
+  "completed_with_issue",
+]);
+
+function isVisibleRequest(item) {
+  const status = String(item.status || "")
+    .trim()
+    .toLowerCase()
+    .replaceAll(/[ -]+/g, "_");
+
+  return !hiddenRequestStatuses.has(status);
+}
+
 function Requests() {
   const navigate = useNavigate();
 
@@ -61,19 +77,23 @@ function Requests() {
         }
 
         setEquipmentRequests(
-          (equipmentData.requests || []).map((item) => ({
-            ...item,
-            name: item.equipment_name || "Equipment",
-            type: "Equipment",
-          }))
+          (equipmentData.requests || [])
+            .filter(isVisibleRequest)
+            .map((item) => ({
+              ...item,
+              name: item.equipment_name || "Equipment",
+              type: "Equipment",
+            }))
         );
 
         setFacilityRequests(
-          (facilityData.reservations || []).map((item) => ({
-            ...item,
-            name: item.facility_name || "Facility",
-            type: "Facility",
-          }))
+          (facilityData.reservations || [])
+            .filter(isVisibleRequest)
+            .map((item) => ({
+              ...item,
+              name: item.facility_name || "Facility",
+              type: "Facility",
+            }))
         );
       } catch (err) {
         console.error("My Requests error:", err);
@@ -120,21 +140,18 @@ function Requests() {
         throw new Error(data.message || "Failed to return request.");
       }
 
-      const updateRequest = (requests) =>
-        requests.map((request) =>
-          request.id === item.id
-            ? { ...request, status: "returned" }
-            : request
-        );
-
       if (item.type === "Equipment") {
-        setEquipmentRequests(updateRequest);
+        setEquipmentRequests((requests) =>
+          requests.filter((request) => request.id !== item.id)
+        );
       } else {
-        setFacilityRequests(updateRequest);
+        setFacilityRequests((requests) =>
+          requests.filter((request) => request.id !== item.id)
+        );
       }
 
       setReturnMessage(
-        "Request marked as returned. It is now awaiting GSD inspection."
+        "Return submitted successfully."
       );
     } catch (err) {
       setReturnMessage(err.message || "Unable to return request.");

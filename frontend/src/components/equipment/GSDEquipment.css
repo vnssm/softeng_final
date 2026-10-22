@@ -76,16 +76,26 @@
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
-.equipment-image {
+.personnel-equipment .equipment-image {
   width: 100%;
+  aspect-ratio: 1.7 / 1;
   margin-bottom: 12px;
+  overflow: hidden;
+  background: #f3f4f6;
+  border-radius: 10px;
 }
 
-.image-placeholder {
+.personnel-equipment .equipment-photo {
+  display: block;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  background: #e5e7eb;
-  border-radius: 10px;
+  height: 100%;
+  object-fit: cover;
+}
+
+.personnel-equipment .image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: transparent;
 }
 
 .equipment-name {

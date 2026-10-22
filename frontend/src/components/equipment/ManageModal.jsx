@@ -78,6 +78,19 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
       return;
     }
 
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    const isAllowedImage =
+      ["jpg", "jpeg"].includes(extension) && file.type === "image/jpeg";
+    const isAllowedPng = extension === "png" && file.type === "image/png";
+
+    if (!isAllowedImage && !isAllowedPng) {
+      e.target.value = "";
+      setSelectedImage(null);
+      setError("Only JPG, JPEG, and PNG files are allowed.");
+      return;
+    }
+
+    setError("");
     setSelectedImage(file);
     setPreviewUrl(URL.createObjectURL(file));
   };
@@ -268,7 +281,7 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
             <label>Equipment Photo {isAddMode ? "*" : ""}</label>
             <input
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
               onChange={handleImageChange}
               required={isAddMode}
             />

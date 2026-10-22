@@ -63,20 +63,26 @@
   color: #075b0a;
 }
 
-.view-all {
+.borrower-view-all {
   text-align: right;
   margin-top: 16px;
 }
 
-.view-all a {
-  color: #075b0a;
-  font-size: 14px;
-  font-weight: 500;
+.borrower-view-all-link {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: #075b0a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
   text-decoration: none;
+  transition: background-color 0.2s ease;
 }
 
-.view-all a:hover {
-  text-decoration: underline;
+.borrower-view-all-link:hover {
+  background: #054a08;
 }
 
 /* Section Cards */

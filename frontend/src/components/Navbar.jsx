@@ -77,23 +77,20 @@ function Navbar({ onToggleSidebar }) {
   };
 
   
-  const handleLogout = async () => {
+  const handleLogout = () => {
     const token =
       localStorage.getItem("token") ||
       sessionStorage.getItem("token");
 
-    // Record the logout before removing the token
     if (token) {
-      try {
-        await fetch("http://localhost:5000/api/auth/logout", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      } catch (error) {
+      fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }).catch((error) => {
         console.error("Failed to record logout:", error);
-      }
+      });
     }
 
     // Clear saved login information

@@ -7,7 +7,14 @@ const APPROVED_STATUSES = new Set([
   "for_delivery",
   "for_pickup",
   "ongoing",
+  "overdue",
 ]);
+
+const normalizeStatus = (status) =>
+  String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
 
 function ApprovedTransactions() {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -43,7 +50,7 @@ function ApprovedTransactions() {
         : data.requests || [];
 
       const approvedRequests = requests.filter((request) =>
-        APPROVED_STATUSES.has(String(request.status || "").toLowerCase())
+        APPROVED_STATUSES.has(normalizeStatus(request.status))
       );
 
       setTransactions(approvedRequests);

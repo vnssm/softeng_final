@@ -24,8 +24,12 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
         capacity: facility.capacity || "",
         location: facility.location || "",
         status:
-          facility.condition_status ||
-          (Number(facility.is_available) === 1 ? "Available" : "Unavailable"),
+          Number(facility.is_active) !== 1
+            ? "Unavailable"
+            : facility.condition_status ||
+              (Number(facility.is_available) === 1
+                ? "Available"
+                : "Unavailable"),
       });
       setPreviewUrl(
         facility.image_url

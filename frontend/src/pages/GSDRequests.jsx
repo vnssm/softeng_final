@@ -97,71 +97,85 @@ function GSDRequests() {
   const [allRequests, setAllRequests] = useState([]);
 
   useEffect(() => {
-  const loadRequests = async () => {
-    try {
-      setLoading(true);
-      setError("");
+    const loadRequests = async (showLoading = false) => {
+      try {
+        if (showLoading) setLoading(true);
+        setError("");
 
-      const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        "http://localhost:5000/api/requests/requests",
-        {
-          headers: {
-            Authorization: "Bearer " + token,
-          },
+        const response = await fetch(
+          "http://localhost:5000/api/requests/requests",
+          {
+            headers: {
+              Authorization: "Bearer " + token,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load requests.");
         }
-      );
 
-      const data = await response.json();
+        const formattedRequests = (data.requests || []).map((item) => {
+          let status = item.status || "pending";
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to load requests.");
+          status = status
+            .toLowerCase()
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+          return {
+            ...item,
+            id: item.id,
+            type: item.type,
+            name: item.name || "Unnamed Request",
+            requestedBy: item.requestedBy || "Unknown Borrower",
+            purpose: item.purpose || "No purpose provided",
+            location: item.location || "Not specified",
+            status: status,
+            deliveryType: item.fulfillment_type
+              ? item.fulfillment_type.charAt(0).toUpperCase() +
+                item.fulfillment_type.slice(1)
+              : "",
+            startDate: item.date_needed || item.startDate || item.start_date || "",
+            endDate: item.date_end || item.end_date || item.endDate || "",
+            startTime: item.time_start || item.startTime || item.start_time || "",
+            endTime: item.time_end || item.endTime || item.end_time || "",
+            time:
+              formatTime(item.time_start || item.startTime || item.start_time) +
+              " - " +
+              formatTime(item.time_end || item.endTime || item.end_time),
+            borrower: item.requestedBy || "Unknown Borrower",
+          };
+        });
+
+        setAllRequests(formattedRequests);
+      } catch (error) {
+        console.error("Load personnel requests error:", error);
+        setError(error.message);
+      } finally {
+        if (showLoading) setLoading(false);
       }
+    };
 
-      const formattedRequests = (data.requests || []).map((item) => {
-        let status = item.status || "pending";
+    loadRequests(true);
 
-        status = status
-          .toLowerCase()
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    const refreshVisibleRequests = () => {
+      if (document.visibilityState === "visible") {
+        loadRequests();
+      }
+    };
 
-        return {
-          ...item,
-          id: item.id,
-          type: item.type,
-          name: item.name || "Unnamed Request",
-          requestedBy: item.requestedBy || "Unknown Borrower",
-          purpose: item.purpose || "No purpose provided",
-          location: item.location || "Not specified",
-          status: status,
-          deliveryType: item.fulfillment_type
-            ? item.fulfillment_type.charAt(0).toUpperCase() +
-              item.fulfillment_type.slice(1)
-            : "",
-          startDate: item.date_needed || item.startDate || item.start_date || "",
-          endDate: item.date_end || item.end_date || item.endDate || "",
-          startTime: item.time_start || item.startTime || item.start_time || "",
-          endTime: item.time_end || item.endTime || item.end_time || "",
-          time:
-            formatTime(item.time_start || item.startTime || item.start_time) +
-            " - " +
-            formatTime(item.time_end || item.endTime || item.end_time),
-          borrower: item.requestedBy || "Unknown Borrower",
-        };
-      });
+    window.addEventListener("focus", refreshVisibleRequests);
+    const refreshInterval = window.setInterval(refreshVisibleRequests, 30000);
 
-      setAllRequests(formattedRequests);
-    } catch (error) {
-      console.error("Load personnel requests error:", error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  loadRequests();
+    return () => {
+      window.removeEventListener("focus", refreshVisibleRequests);
+      window.clearInterval(refreshInterval);
+    };
   }, []);
 
   // ADD THE NEW useEffect HERE
@@ -293,8 +307,8 @@ function GSDRequests() {
       return;
     }
 
-    if (returnState !== "Normal" && !inspectionNotes.trim()) {
-      setError("Please describe the damage or issue found.");
+    if (!inspectionNotes.trim()) {
+      setError("Please enter the inspection results.");
       return;
     }
 
@@ -905,12 +919,13 @@ const handleRejectSend = async () => {
               </div>
 
               <div className="inspection-section">
-                <label>Inspection results</label>
+                <label>Inspection results *</label>
                 <textarea
                   placeholder="Write inspection notes..."
                   value={inspectionNotes}
                   onChange={(e) => setInspectionNotes(e.target.value)}
                   rows={4}
+                  required
                 />
               </div>
             </div>

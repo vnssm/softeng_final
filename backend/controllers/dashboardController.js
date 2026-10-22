@@ -157,17 +157,21 @@ exports.getPersonnelDashboard = async (req, res) => {
       `SELECT COUNT(*) AS count FROM requests WHERE LOWER(status) = 'overdue'`
     );
 
-    // 2. Today's approved pickup and delivery tasks for this personnel
+    // 2. Today's active pickup and delivery tasks for this personnel
     const [todayTasks] = await pool.query(
       `SELECT a.id, a.assignment_type, a.scheduled_time, a.location,
               r.request_code, r.fulfillment_type, r.status
        FROM assignments a
        INNER JOIN requests r ON r.id = a.request_id
        WHERE a.personnel_id = ?
-         AND r.request_type = 'equipment'
-         AND r.status = 'approved'
-         AND LOWER(r.fulfillment_type) IN ('pickup', 'delivery')
-         AND DATE(r.date_needed) = CURDATE()
+         AND LOWER(COALESCE(
+           NULLIF(TRIM(r.fulfillment_type), ''),
+           TRIM(a.assignment_type)
+         )) IN ('pickup', 'delivery')
+         AND (
+           DATE(a.scheduled_time) = CURDATE()
+           OR DATE(r.date_needed) = CURDATE()
+         )
        ORDER BY a.scheduled_time ASC
        LIMIT 10`,
       [personnelId]

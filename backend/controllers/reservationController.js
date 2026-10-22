@@ -1,6 +1,5 @@
 
 const db = require("../config/db");
-const { notifyGSDPersonnel } = require("./notificationController");
 
 // Create a new facility reservation
 exports.createReservation = async (req, res) => {
@@ -311,6 +310,7 @@ exports.getMyReservations = async (req, res) => {
        INNER JOIN facilities f ON r.facility_id = f.id
        WHERE r.user_id = ?
          AND r.request_type = 'facility'
+         AND LOWER(TRIM(COALESCE(r.status, ''))) NOT IN ('return', 'returned', 'completed', 'completed_with_issue')
        ORDER BY r.created_at DESC`,
       [userId]
     );
@@ -391,20 +391,28 @@ exports.returnReservation = async (req, res) => {
         userId,
         "Reservation Return Submitted",
         "Your facility reservation " + request.request_code +
-          " has been marked as returned and is awaiting inspection by GSD personnel.",
+          " has been marked as returned.",
         "success",
         "request_returned",
         requestId
       ]
     );
 
-    await notifyGSDPersonnel({
-      title: "Facility Returned",
-      message: `Facility reservation ${request.request_code} has been returned and is awaiting inspection.`,
-      type: "warning",
-      eventType: "request_returned",
-      requestId,
-    });
+    await connection.query(
+      `INSERT INTO notifications
+       (user_id, title, message, type, event_type, related_request_id)
+       SELECT id, ?, ?, ?, ?, ?
+       FROM users
+       WHERE role IN ('personnel', 'admin')
+         AND is_active = 1`,
+      [
+        "Facility Returned",
+        `Facility reservation ${request.request_code} has been marked as returned.`,
+        "warning",
+        "request_returned",
+        requestId,
+      ]
+    );
 
     await connection.commit();
 

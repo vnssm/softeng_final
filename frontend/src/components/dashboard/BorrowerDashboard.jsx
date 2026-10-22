@@ -180,8 +180,10 @@ function BorrowerDashboard() {
           </div>
         </div>
 
-        <div className="view-all">
-          <Link to="/requests">View All →</Link>
+        <div className="borrower-view-all">
+          <Link to="/requests" className="borrower-view-all-link">
+            View All
+          </Link>
         </div>
       </div>
 
