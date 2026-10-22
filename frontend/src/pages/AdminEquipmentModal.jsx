@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import "./AdminEquipmentModal.css";
@@ -51,11 +50,21 @@ function AdminEquipmentModal({
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setError("");
     setForm((currentForm) => ({
       ...currentForm,
       [name]: value,
     }));
+
+    setError("");
+  };
+
+  const handleStatusChange = (name, value) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      [name]: value,
+    }));
+
+    setError("");
   };
 
   const handleSubmit = async (e) => {
@@ -79,7 +88,7 @@ function AdminEquipmentModal({
       quantity < 1 ||
       quantity > 500
     ) {
-      setError("Quantity must be a whole number between 1 and 2000.");
+      setError("Quantity must be a whole number between 1 and 500.");
       return;
     }
 
@@ -107,6 +116,10 @@ function AdminEquipmentModal({
       const token =
         localStorage.getItem("token") ||
         sessionStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("Your session has expired. Please log in again.");
+      }
 
       const url = isAddMode
         ? "http://localhost:5000/api/equipment"
@@ -154,7 +167,10 @@ function AdminEquipmentModal({
   };
 
   return (
-    <div className="admin-equipment-overlay" onClick={onClose}>
+    <div
+      className="admin-equipment-overlay"
+      onClick={saving ? undefined : onClose}
+    >
       <div
         className="admin-equipment-modal"
         onClick={(e) => e.stopPropagation()}
@@ -238,72 +254,71 @@ function AdminEquipmentModal({
             </label>
 
             <div className="admin-equipment-full">
-  <span className="admin-equipment-label">
-    Equipment Status *
-  </span>
+              <span className="admin-equipment-label">
+                Equipment Status *
+              </span>
 
-  <div className="admin-equipment-status">
-    {[
-      { value: "Available", label: "Available" },
-      { value: "Unavailable", label: "Unavailable" },
-      { value: "Under Maintenance", label: "Under Maintenance" },
-    ].map((status) => (
-      <button
-        type="button"
-        key={status.value}
-        className={
-          form.equipment_status === status.value
-            ? "selected"
-            : ""
-        }
-        onClick={() =>
-          setForm({
-            ...form,
-            equipment_status: status.value,
-          })
-        }
-      >
-        {status.label}
-      </button>
-    ))}
-  </div>
-</div>
-
-          <div className="admin-equipment-full">
-            <span className="admin-equipment-label">
-              Condition Status *
-            </span>
-
-            <div className="admin-equipment-status">
-              {[
-                { value: "Good", label: "Good" },
-                { value: "Needs Repair", label: "Needs Repair" },
-                { value: "Damaged", label: "Damaged" },
-              ].map((status) => (
-                <button
-                  type="button"
-                  key={status.value}
-                  className={
-                    form.condition_status === status.value
-                      ? "selected"
-                      : ""
-                  }
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      condition_status: status.value,
-                    })
-                  }
-                >
-                  {status.label}
-                </button>
-              ))}
+              <div className="admin-equipment-status">
+                {[
+                  { value: "Available", label: "Available" },
+                  { value: "Unavailable", label: "Unavailable" },
+                  {
+                    value: "Under Maintenance",
+                    label: "Under Maintenance",
+                  },
+                ].map((status) => (
+                  <button
+                    type="button"
+                    key={status.value}
+                    className={
+                      form.equipment_status === status.value
+                        ? "selected"
+                        : ""
+                    }
+                    onClick={() =>
+                      handleStatusChange("equipment_status", status.value)
+                    }
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+
+            <div className="admin-equipment-full">
+              <span className="admin-equipment-label">
+                Condition Status *
+              </span>
+
+              <div className="admin-equipment-status">
+                {[
+                  { value: "Good", label: "Good" },
+                  { value: "Needs Repair", label: "Needs Repair" },
+                  { value: "Damaged", label: "Damaged" },
+                ].map((status) => (
+                  <button
+                    type="button"
+                    key={status.value}
+                    className={
+                      form.condition_status === status.value
+                        ? "selected"
+                        : ""
+                    }
+                    onClick={() =>
+                      handleStatusChange("condition_status", status.value)
+                    }
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {error && (
-            <p className="admin-equipment-error">{error}</p>
+            <p className="admin-equipment-error" role="alert">
+              {error}
+            </p>
           )}
 
           <div className="admin-equipment-actions">

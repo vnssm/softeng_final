@@ -53,9 +53,7 @@ const equipmentUpload = multer({
 const uploadEquipmentImage = (req, res, next) => {
   equipmentUpload.single("image")(req, res, (error) => {
     if (error) {
-      return res.status(400).json({
-        message: error.message,
-      });
+      return res.status(400).json({ message: error.message });
     }
 
     next();
@@ -63,7 +61,7 @@ const uploadEquipmentImage = (req, res, next) => {
 };
 
 // =============================================
-// VALID EQUIPMENT CONDITIONS
+// VALID STATUSES
 // =============================================
 
 const validEquipmentStatuses = [
@@ -95,13 +93,7 @@ const logEquipmentActivity = async (
       `INSERT INTO activity_logs
        (user_id, action_type, description, related_type, related_id)
        VALUES (?, ?, ?, ?, ?)`,
-      [
-        userId,
-        actionType,
-        description,
-        "equipment",
-        equipmentId,
-      ]
+      [userId, actionType, description, "equipment", equipmentId]
     );
   } catch (error) {
     console.error("Equipment activity log error:", error.message);
@@ -109,29 +101,37 @@ const logEquipmentActivity = async (
 };
 
 // =============================================
+// FORMAT EQUIPMENT FOR THE FRONTEND
+// =============================================
+
+const formatEquipment = (item) => ({
+  ...item,
+  condition_status:
+    item.condition_status === "Good"
+      ? "Available"
+      : item.condition_status,
+});
+
+// =============================================
 // GET ALL EQUIPMENT
 // =============================================
 
+exports.getAllEquipment = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, name, description, category, quantity_total,
+              quantity_available, equipment_status, condition_status,
+              location, image_url, is_active
+       FROM equipment
+       ORDER BY name ASC`
+    );
 
-  exports.getAllEquipment = async (req, res) => {
-    try {
-      const [rows] = await pool.query(
-        `SELECT id, name, description, category, quantity_total,
-                quantity_available, equipment_status, condition_status,
-                location, image_url, is_active
-        FROM equipment
-        ORDER BY name ASC`
-      );
-
-      res.status(200).json(rows);
-    } catch (error) {
-      console.error("Get equipment error:", error);
-
-      res.status(500).json({
-        message: "Server error",
-      });
-    }
-  };
+    res.status(200).json(rows.map(formatEquipment));
+  } catch (error) {
+    console.error("Get equipment error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 // =============================================
 // GET SINGLE EQUIPMENT
@@ -152,13 +152,10 @@ exports.getEquipmentById = async (req, res) => {
       });
     }
 
-    res.status(200).json(rows[0]);
+    res.status(200).json(formatEquipment(rows[0]));
   } catch (error) {
     console.error("Get equipment by id error:", error);
-
-    res.status(500).json({
-      message: "Server error",
-    });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -173,6 +170,8 @@ exports.createEquipment = [
     try {
       const body = req.body || {};
 
+      const name =
+        typeof body.name === "string" ? body.name.trim() : "";
       const description = body.description;
       const category = body.category;
       const quantity_total = body.quantity_total;
@@ -180,25 +179,15 @@ exports.createEquipment = [
       const equipment_status = body.equipment_status || "Available";
       const condition_status = body.condition_status || "Good";
 
-      const name =
-        typeof body.name === "string" ? body.name.trim() : "";
-
-      // A photo is required when adding equipment.
       if (!req.file) {
         return res.status(400).json({
           message: "Equipment photo is required.",
         });
       }
 
-      if (!name) {
+      if (!name || name.length > 150) {
         return res.status(400).json({
-          message: "Equipment name is required.",
-        });
-      }
-
-      if (name.length > 150) {
-        return res.status(400).json({
-          message: "Equipment name must be 150 characters or fewer.",
+          message: "Equipment name is required and must not exceed 150 characters.",
         });
       }
 
@@ -221,44 +210,37 @@ exports.createEquipment = [
         ["Category", category, 100],
         ["Location", location, 150],
       ]) {
-        if (typeof value !== "string" || !value.trim()) {
+        if (
+          typeof value !== "string" ||
+          !value.trim() ||
+          value.trim().length > maxLength
+        ) {
           return res.status(400).json({
-            message: field + " is required.",
-          });
-        }
-
-        if (value.trim().length > maxLength) {
-          return res.status(400).json({
-            message:
-              field + " must be " + maxLength + " characters or fewer.",
+            message: field + " is required and must not exceed " +
+              maxLength + " characters.",
           });
         }
       }
 
       if (
         typeof description !== "string" ||
-        !description.trim()
+        !description.trim() ||
+        Buffer.byteLength(description.trim(), "utf8") > 65535
       ) {
         return res.status(400).json({
-          message: "Equipment description is required.",
-        });
-      }
-
-      if (Buffer.byteLength(description.trim(), "utf8") > 65535) {
-        return res.status(400).json({
-          message: "Description is too long.",
+          message: "Enter a valid equipment description.",
         });
       }
 
       if (!validEquipmentStatuses.includes(equipment_status)) {
         return res.status(400).json({
-          message: "Invalid equipment status",
+          message: "Invalid equipment status.",
         });
       }
 
       if (!validConditionStatuses.includes(condition_status)) {
         return res.status(400).json({
-          message: "Invalid equipment condition",
+          message: "Invalid equipment condition.",
         });
       }
 
@@ -267,9 +249,9 @@ exports.createEquipment = [
       const [result] = await pool.query(
         `INSERT INTO equipment
           (name, description, category, quantity_total,
-          quantity_available, equipment_status, condition_status,
-          location, image_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           quantity_available, equipment_status, condition_status,
+           location, image_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           name,
           description.trim(),
@@ -320,10 +302,7 @@ exports.createEquipment = [
       });
     } catch (error) {
       console.error("Create equipment error:", error);
-
-      res.status(500).json({
-        message: "Server error",
-      });
+      res.status(500).json({ message: "Server error" });
     }
   },
 ];
@@ -364,7 +343,6 @@ exports.updateEquipment = [
 
       const oldValues = existingRows[0];
 
-      // Validate the equipment name.
       const normalizedName =
         typeof name === "string" ? name.trim() : name;
 
@@ -375,12 +353,10 @@ exports.updateEquipment = [
           normalizedName.length > 150)
       ) {
         return res.status(400).json({
-          message:
-            "Equipment name is required and must not exceed 150 characters.",
+          message: "Equipment name is required and must not exceed 150 characters.",
         });
       }
 
-      // Validate category.
       if (
         category !== undefined &&
         (typeof category !== "string" ||
@@ -392,7 +368,6 @@ exports.updateEquipment = [
         });
       }
 
-      // Validate location.
       if (
         location !== undefined &&
         (typeof location !== "string" ||
@@ -404,7 +379,6 @@ exports.updateEquipment = [
         });
       }
 
-      // Validate description.
       if (
         description !== undefined &&
         (typeof description !== "string" ||
@@ -416,13 +390,12 @@ exports.updateEquipment = [
         });
       }
 
-      // Validate equipment condition.
       if (
         equipment_status !== undefined &&
         !validEquipmentStatuses.includes(equipment_status)
       ) {
         return res.status(400).json({
-          message: "Invalid equipment status",
+          message: "Invalid equipment status.",
         });
       }
 
@@ -431,11 +404,10 @@ exports.updateEquipment = [
         !validConditionStatuses.includes(condition_status)
       ) {
         return res.status(400).json({
-          message: "Invalid equipment condition",
+          message: "Invalid equipment condition.",
         });
       }
 
-      // Calculate the new total quantity.
       let newTotal = Number(oldValues.quantity_total);
 
       if (quantity_total !== undefined) {
@@ -454,7 +426,6 @@ exports.updateEquipment = [
         }
       }
 
-      // Keep the number of units already borrowed unchanged.
       const borrowed =
         Number(oldValues.quantity_total) -
         Number(oldValues.quantity_available);
@@ -468,15 +439,12 @@ exports.updateEquipment = [
 
       const newAvailable = newTotal - borrowed;
 
-      // Validate active/inactive status when provided.
       let newActiveStatus = oldValues.is_active;
 
       if (is_active !== undefined) {
-        if (
-          ![0, 1, "0", "1", true, false].includes(is_active)
-        ) {
+        if (![0, 1, "0", "1", true, false].includes(is_active)) {
           return res.status(400).json({
-            message: "Select a valid equipment status.",
+            message: "Select a valid active/inactive status.",
           });
         }
 
@@ -486,7 +454,6 @@ exports.updateEquipment = [
             : 0;
       }
 
-      // Keep the existing photo unless a new one is uploaded.
       const imageUrl = req.file
         ? `/uploads/equipment/${req.file.filename}`
         : oldValues.image_url || null;
@@ -503,7 +470,7 @@ exports.updateEquipment = [
           location = COALESCE(?, location),
           image_url = ?,
           is_active = ?
-        WHERE id = ?`,
+         WHERE id = ?`,
         [
           name === undefined ? null : normalizedName,
           description === undefined ? null : description.trim(),
@@ -526,7 +493,6 @@ exports.updateEquipment = [
 
       const newValues = updatedRows[0];
 
-      // Determine the main change made to the equipment.
       let action = "Equipment Updated";
 
       if (
@@ -548,15 +514,13 @@ exports.updateEquipment = [
       ) {
         action = "Equipment Condition Changed";
       } else if (
-        Number(oldValues.quantity_total) !==
-          Number(newValues.quantity_total) ||
+        Number(oldValues.quantity_total) !== Number(newValues.quantity_total) ||
         Number(oldValues.quantity_available) !==
           Number(newValues.quantity_available)
       ) {
         action = "Equipment Quantity Updated";
       }
 
-      // Record the change in the audit log.
       await saveAuditLog(
         req,
         action,
@@ -566,19 +530,15 @@ exports.updateEquipment = [
         newValues
       );
 
-      // Record the user's activity.
       let activityAction = "equipment_edited";
-      let activityDescription =
-        "Edited equipment: " + newValues.name;
+      let activityDescription = "Edited equipment: " + newValues.name;
 
       if (action === "Equipment Deactivated") {
         activityAction = "equipment_deactivated";
-        activityDescription =
-          "Deactivated equipment: " + newValues.name;
+        activityDescription = "Deactivated equipment: " + newValues.name;
       } else if (action === "Equipment Reactivated") {
         activityAction = "equipment_reactivated";
-        activityDescription =
-          "Reactivated equipment: " + newValues.name;
+        activityDescription = "Reactivated equipment: " + newValues.name;
       }
 
       await logEquipmentActivity(
@@ -588,7 +548,6 @@ exports.updateEquipment = [
         id
       );
 
-      // Notify admins about the change.
       let notificationTitle = "Equipment Details Updated";
       let notificationMessage =
         "GSD personnel updated equipment: " + newValues.name + ".";
@@ -602,11 +561,9 @@ exports.updateEquipment = [
       } else if (action === "Equipment Reactivated") {
         notificationTitle = "Equipment Reactivated";
         notificationMessage =
-          "Equipment " +
-          newValues.name +
-          " was reactivated and is active again.";
+          "Equipment " + newValues.name + " was reactivated and is active again.";
         notificationType = "equipment_reactivated";
-        } else if (action === "Equipment Status Changed") {
+      } else if (action === "Equipment Status Changed") {
         notificationTitle = "Equipment Status Changed";
         notificationMessage =
           "The operational status of equipment " +
@@ -644,10 +601,7 @@ exports.updateEquipment = [
       });
     } catch (error) {
       console.error("Update equipment error:", error);
-
-      res.status(500).json({
-        message: "Server error",
-      });
+      res.status(500).json({ message: "Server error" });
     }
   },
 ];

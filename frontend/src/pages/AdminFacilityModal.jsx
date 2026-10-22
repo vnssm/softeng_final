@@ -91,6 +91,10 @@ function AdminFacilityModal({
     try {
       const token = localStorage.getItem("token");
 
+      if (!token) {
+        throw new Error("Please log in before saving a facility.");
+      }
+
       const url = isAddMode
         ? "http://localhost:5000/api/facilities"
         : `http://localhost:5000/api/facilities/${facility.id}`;
@@ -100,13 +104,10 @@ function AdminFacilityModal({
         description: form.description.trim(),
         capacity,
         location: form.location.trim(),
+        is_available: isAddMode
+          ? 1
+          : Number(form.is_available),
       };
-
-      if (isAddMode) {
-        requestData.is_available = 1;
-      } else {
-        requestData.is_available = Number(form.is_available);
-      }
 
       const response = await fetch(url, {
         method: isAddMode ? "POST" : "PUT",
@@ -140,7 +141,10 @@ function AdminFacilityModal({
   };
 
   return (
-    <div className="admin-equipment-overlay" onClick={onClose}>
+    <div
+      className="admin-equipment-overlay"
+      onClick={saving ? undefined : onClose}
+    >
       <div
         className="admin-equipment-modal"
         onClick={(e) => e.stopPropagation()}

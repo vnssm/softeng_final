@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import {
   FaBell,
@@ -65,7 +64,6 @@ function Notifications() {
     loadNotifications();
   }, []);
 
-
   const getCategory = (notification) => {
     const type = (
       notification.type ||
@@ -100,8 +98,11 @@ function Notifications() {
       return "Requests";
     }
 
-    if (type.includes("account") || type.includes("user_profile") ||
-        type.includes("user_account")) {
+    if (
+      type.includes("account") ||
+      type.includes("user_profile") ||
+      type.includes("user_account")
+    ) {
       return "Account";
     }
 
@@ -109,7 +110,11 @@ function Notifications() {
   };
 
   const getIcon = (notification) => {
-    const type = (notification.type || "").toLowerCase();
+    const type = (
+      notification.type ||
+      notification.event_type ||
+      ""
+    ).toLowerCase();
 
     if (type.includes("audit")) return <FaFileAlt />;
 
@@ -124,7 +129,10 @@ function Notifications() {
       return <FaSyncAlt />;
     }
 
-    if (type.includes("maintenance") || type.includes("unavailable")) {
+    if (
+      type.includes("maintenance") ||
+      type.includes("unavailable")
+    ) {
       return <FaExclamationTriangle />;
     }
 
@@ -146,7 +154,11 @@ function Notifications() {
   };
 
   const getPriority = (notification) => {
-    const type = (notification.type || "").toLowerCase();
+    const type = (
+      notification.type ||
+      notification.event_type ||
+      ""
+    ).toLowerCase();
 
     if (
       type.includes("overdue") ||
@@ -204,7 +216,9 @@ function Notifications() {
 
     const days = Math.floor(hours / 24);
 
-    if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+    if (days < 7) {
+      return `${days} day${days === 1 ? "" : "s"} ago`;
+    }
 
     return formatDate(dateValue);
   };
@@ -227,7 +241,7 @@ function Notifications() {
       " " +
       (item.message || "") +
       " " +
-      (item.type || "")
+      (item.type || item.event_type || "")
     ).toLowerCase();
 
     return matchesFilter && searchText.includes(search.toLowerCase());
@@ -246,12 +260,16 @@ function Notifications() {
         <div className="notifications-title-group">
           <div className="notifications-title-icon">
             <FaBell />
-            {unreadCount > 0 && <span className="notification-dot" />}
+            {unreadCount > 0 && (
+              <span className="notification-dot" />
+            )}
           </div>
 
           <div>
             <h1>Notifications</h1>
-            <p>Stay updated on requests, assignments, and important alerts.</p>
+            <p>
+              Stay updated on requests, assignments, and important alerts.
+            </p>
           </div>
         </div>
 
@@ -273,7 +291,8 @@ function Notifications() {
 
         <div>
           <h2>
-            {unreadCount} unread {unreadCount === 1 ? "notification" : "notifications"}
+            {unreadCount} unread{" "}
+            {unreadCount === 1 ? "notification" : "notifications"}
           </h2>
           <p>
             Check your latest updates, reminders, and important alerts.
@@ -293,22 +312,30 @@ function Notifications() {
         </div>
 
         <div className="notifications-filters">
-          {["All", "Unread", "Requests", "Equipment", "Facility", "Audit Logs", "System Reports","System Settings","Account"].map(
-            (filter) => (
-              <button
-                key={filter}
-                type="button"
-                className={
-                  activeFilter === filter
-                    ? "notification-filter active"
-                    : "notification-filter"
-                }
-                onClick={() => setActiveFilter(filter)}
-              >
-                {filter}
-              </button>
-            )
-          )}
+          {[
+            "All",
+            "Unread",
+            "Requests",
+            "Equipment",
+            "Facility",
+            "Audit Logs",
+            "System Reports",
+            "System Settings",
+            "Account"
+          ].map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              className={
+                activeFilter === filter
+                  ? "notification-filter active"
+                  : "notification-filter"
+              }
+              onClick={() => setActiveFilter(filter)}
+            >
+              {filter}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -353,9 +380,7 @@ function Notifications() {
                 className={`notification-card ${isUnread ? "unread" : ""}`}
                 key={item.id}
               >
-                <div
-                  className={`notification-card-icon ${priority}`}
-                >
+                <div className={`notification-card-icon ${priority}`}>
                   {getIcon(item)}
                 </div>
 
@@ -385,7 +410,9 @@ function Notifications() {
                   </div>
                 </div>
 
-                {isUnread && <span className="notification-unread-dot" />}
+                {isUnread && (
+                  <span className="notification-unread-dot" />
+                )}
               </div>
             );
           })

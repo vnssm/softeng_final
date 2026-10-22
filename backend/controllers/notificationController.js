@@ -45,7 +45,13 @@ async function notifyUsers({
   }
 }
 
-async function notifyGSDPersonnel({ title, message, type = "info", eventType, requestId }) {
+async function notifyGSDPersonnel({
+  title,
+  message,
+  type = "info",
+  eventType,
+  requestId,
+}) {
   const [personnelUsers] = await db.query(
     `SELECT id
      FROM users
@@ -63,7 +69,10 @@ async function notifyGSDPersonnel({ title, message, type = "info", eventType, re
   });
 }
 
-// Check for upcoming and overdue requests
+// =============================================
+// AUTOMATIC BORROWER NOTIFICATIONS
+// =============================================
+
 async function createAutomaticNotifications(userId) {
   // Reminder for approved requests starting today or tomorrow
   await db.query(
@@ -79,8 +88,10 @@ async function createAutomaticNotifications(userId) {
      SELECT
        r.user_id,
        CASE
-         WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'pickup' THEN 'Pickup Schedule'
-         WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'delivery' THEN 'Delivery Schedule'
+         WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'pickup'
+           THEN 'Pickup Schedule'
+         WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'delivery'
+           THEN 'Delivery Schedule'
          ELSE 'Upcoming Request'
        END,
        CONCAT(
@@ -103,8 +114,10 @@ async function createAutomaticNotifications(userId) {
          ),
          ' is scheduled for ',
          CASE
-           WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'pickup' THEN 'pickup'
-           WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'delivery' THEN 'delivery'
+           WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'pickup'
+             THEN 'pickup'
+           WHEN LOWER(COALESCE(r.fulfillment_type, '')) = 'delivery'
+             THEN 'delivery'
            ELSE 'processing'
          END,
          ' on ',
@@ -185,6 +198,10 @@ async function createAutomaticNotifications(userId) {
   );
 }
 
+// =============================================
+// WEEKLY ADMIN REPORT NOTIFICATIONS
+// =============================================
+
 // Create a weekly audit log report notification for admins
 async function createWeeklyAuditNotifications() {
   await db.query(
@@ -233,13 +250,16 @@ async function createWeeklySystemReportNotifications() {
   );
 }
 
-// Get notifications for the logged-in user
+// =============================================
+// GET LOGGED-IN USER NOTIFICATIONS
+// =============================================
+
 exports.getMyNotifications = async (req, res) => {
   const userId = req.user.id || req.user.userId;
 
   if (!userId) {
     return res.status(401).json({
-      message: "User information is missing. Please log in again."
+      message: "User information is missing. Please log in again.",
     });
   }
 
@@ -272,18 +292,21 @@ exports.getMyNotifications = async (req, res) => {
     );
 
     return res.status(200).json({
-      notifications
+      notifications,
     });
   } catch (error) {
     console.error("Get notifications error:", error);
 
     return res.status(500).json({
-      message: "Failed to load notifications."
+      message: "Failed to load notifications.",
     });
   }
 };
 
-// Mark one notification as read
+// =============================================
+// MARK NOTIFICATION AS READ
+// =============================================
+
 exports.markAsRead = async (req, res) => {
   try {
     const userId = req.user.id || req.user.userId;
@@ -298,21 +321,25 @@ exports.markAsRead = async (req, res) => {
 
     if (result.affectedRows === 0) {
       return res.status(404).json({
-        message: "Notification not found."
+        message: "Notification not found.",
       });
     }
 
     return res.status(200).json({
-      message: "Notification marked as read."
+      message: "Notification marked as read.",
     });
   } catch (error) {
     console.error("Mark notification as read error:", error);
 
     return res.status(500).json({
-      message: "Failed to update notification."
+      message: "Failed to update notification.",
     });
   }
 };
+
+// =============================================
+// EXPORT NOTIFICATION HELPERS
+// =============================================
 
 exports.insertNotification = insertNotification;
 exports.notifyUsers = notifyUsers;

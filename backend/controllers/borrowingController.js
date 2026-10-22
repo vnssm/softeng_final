@@ -328,14 +328,15 @@ exports.getMyBorrowings = async (req, res) => {
        INNER JOIN equipment e ON ri.equipment_id = e.id
        WHERE r.user_id = ?
          AND r.request_type = 'equipment'
-         AND NOT EXISTS (
-           SELECT 1
-           FROM transaction_removals tr
-           WHERE tr.request_id = r.id
-         )
-       ORDER BY r.created_at DESC`,
+        AND NOT EXISTS (
+          SELECT 1
+          FROM transaction_removals tr
+          WHERE tr.request_id = r.id
+        )
+      ORDER BY r.created_at DESC`,
       [userId]
     );
+
 
     return res.status(200).json({
       requests: rows

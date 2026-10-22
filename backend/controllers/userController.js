@@ -477,12 +477,13 @@ exports.deactivateUser = async (req, res) => {
       "account",
       "user_account_deactivated"
     );
-
     res.status(200).json({
       message: "User deactivated successfully.",
     });
   } catch (error) {
     console.error("Deactivate user error:", error);
-    res.status(500).json({ message: "Failed to deactivate user." });
+    res.status(500).json({
+      message: "Failed to deactivate user.",
+    });
   }
 };

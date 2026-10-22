@@ -21,6 +21,7 @@ function TransactionManagement() {
   const [selectedTx, setSelectedTx] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const [menuPosition, setMenuPosition] = useState({
     top: 0,
@@ -48,24 +49,55 @@ function TransactionManagement() {
     };
   }, []);
 
+  const getToken = () => {
+    return (
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token")
+    );
+  };
+
+  const readResponse = async (response, defaultMessage) => {
+    const contentType = response.headers.get("content-type");
+
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error(
+        "Unexpected server response. Check the backend API route."
+      );
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || defaultMessage);
+    }
+
+    return data;
+  };
+
   const fetchTransactions = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("token");
+      const token = getToken();
 
-      const response = await fetch("http://localhost:5000/api/transactions", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to load transactions.");
+      if (!token) {
+        throw new Error("Your session has expired. Please log in again.");
       }
+
+      const response = await fetch(
+        "http://localhost:5000/api/transactions",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await readResponse(
+        response,
+        "Failed to load transactions."
+      );
 
       setTransactions(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -78,58 +110,62 @@ function TransactionManagement() {
 
   const getBorrowerName = (tx) => {
     return (
-      `${tx.first_name || ""} ${tx.last_name || ""}`.trim() || "Unknown User"
+      `${tx.first_name || ""} ${tx.last_name || ""}`.trim() ||
+      "Unknown User"
     );
   };
 
   const getTransactionType = (tx) => {
-    return (tx.request_type || "").toLowerCase() === "facility"
+    return String(tx.request_type || "").toLowerCase() === "facility"
       ? "Facility"
       : "Equipment";
   };
 
+  const normalizeStatus = (status) => {
+    return String(status || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[\s-]+/g, "_");
+  };
+
   const getStatus = (status) => {
-  const statusMap = {
-    pending: "Pending",
-    approved: "Approved",
-    rejected: "Rejected",
-    ongoing: "Active",
-    returned: "Returned",
-    overdue: "Overdue",
-    completed: "Completed",
-    completed_with_issue: "Completed with Issue",
-    cancelled: "Cancelled",
-    for_delivery: "For Delivery",
-    for_pickup: "For Pickup",
+    const statusMap = {
+      pending: "Pending",
+      approved: "Approved",
+      rejected: "Rejected",
+      ongoing: "Active",
+      returned: "Returned",
+      overdue: "Overdue",
+      completed: "Completed",
+      completed_with_issue: "Completed with Issue",
+      cancelled: "Cancelled",
+      for_delivery: "For Delivery",
+      for_pickup: "For Pickup",
+    };
+
+    const normalizedStatus = normalizeStatus(status);
+
+    return statusMap[normalizedStatus] || status || "Unknown";
   };
 
-  const normalizedStatus = (status || "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "_");
+  const getStatusClass = (status) => {
+    const map = {
+      Active: "status-active",
+      Approved: "status-approved",
+      "For Delivery": "status-for-release",
+      "For Pickup": "status-for-release",
+      Pending: "status-pending",
+      Assigned: "status-assigned",
+      Returned: "status-completed",
+      Completed: "status-completed",
+      "Completed with Issue": "status-completed",
+      Overdue: "status-overdue",
+      Rejected: "status-overdue",
+      Cancelled: "status-overdue",
+    };
 
-  return statusMap[normalizedStatus] || status || "Unknown";
-};
-
-const getStatusClass = (status) => {
-  const map = {
-    Active: "status-active",
-    Approved: "status-approved",
-    "For Delivery": "status-for-release",
-    "For Pickup": "status-for-release",
-    Pending: "status-pending",
-    Assigned: "status-assigned",
-    Returned: "status-completed",
-    Completed: "status-completed",
-    "Completed with Issue": "status-completed",
-    Overdue: "status-overdue",
-    Rejected: "status-overdue",
-    Cancelled: "status-overdue",
+    return map[status] || "";
   };
-
-  return map[status] || "";
-};
-
 
   const getLogistics = (value) => {
     const logistics = String(value || "")
@@ -137,15 +173,11 @@ const getStatusClass = (status) => {
       .toLowerCase()
       .replace(/[\s-]+/g, "_");
 
-    if (
-      ["delivery", "deliver", "for_delivery"].includes(logistics)
-    ) {
+    if (["delivery", "deliver", "for_delivery"].includes(logistics)) {
       return "Delivery";
     }
 
-    if (
-      ["pickup", "pick_up", "for_pickup"].includes(logistics)
-    ) {
+    if (["pickup", "pick_up", "for_pickup"].includes(logistics)) {
       return "Pickup";
     }
 
@@ -198,6 +230,7 @@ const getStatusClass = (status) => {
     const period = hour >= 12 ? "PM" : "AM";
 
     hour = hour % 12;
+
     if (hour === 0) hour = 12;
 
     return `${hour}:${minute} ${period}`;
@@ -207,20 +240,12 @@ const getStatusClass = (status) => {
     if (!tx.time_start && !tx.time_end) {
       return "Time not specified";
     }
+
     return `${formatTime(tx.time_start)} - ${formatTime(tx.time_end)}`;
   };
 
-  const getItems = (tx) => {
-    return {
-      equipment: tx.equipment_names ? tx.equipment_names.split(", ") : [],
-      facilities: tx.facility_name ? [tx.facility_name] : [],
-    };
-  };
-
-  // Timeline steps that match the design
   const getTimelineSteps = (tx) => {
-    const status = (tx.status || "").toLowerCase()    .trim()
-    .replace(/\s+/g, "_");
+    const status = normalizeStatus(tx.status);
 
     const approvedStatuses = [
       "approved",
@@ -243,6 +268,7 @@ const getStatusClass = (status) => {
 
     const returnedStatuses = [
       "returned",
+      "overdue",
       "completed",
       "completed_with_issue",
     ];
@@ -287,12 +313,12 @@ const getStatusClass = (status) => {
     ];
   };
 
-
   const filtered = transactions.filter((tx) => {
     const borrower = getBorrowerName(tx).toLowerCase();
-    const code = (tx.request_code || "").toLowerCase();
+    const code = String(tx.request_code || "").toLowerCase();
     const type = getTransactionType(tx);
     const status = getStatus(tx.status);
+    const rawStatus = normalizeStatus(tx.status);
     const logistics = getLogistics(tx.fulfillment_type);
 
     const items = [
@@ -304,7 +330,7 @@ const getStatusClass = (status) => {
       .join(" ")
       .toLowerCase();
 
-    const searchText = search.toLowerCase();
+    const searchText = search.toLowerCase().trim();
 
     const matchesSearch =
       borrower.includes(searchText) ||
@@ -314,8 +340,6 @@ const getStatusClass = (status) => {
 
     const matchesType =
       typeFilter === "All Types" || type === typeFilter;
-
-    const rawStatus = (tx.status || "").toLowerCase().trim();
 
     const activeStatuses = [
       "approved",
@@ -327,24 +351,33 @@ const getStatusClass = (status) => {
 
     const matchesStatus =
       statusFilter === "All Status" ||
-      (statusFilter === "Active" && activeStatuses.includes(rawStatus)) ||
+      (statusFilter === "Active" &&
+        activeStatuses.includes(rawStatus)) ||
       (statusFilter !== "Active" && status === statusFilter);
 
-    // Only approved requests appear in the specific logistics filters.
+    // Specific logistics filters include approved and later statuses only.
+    const logisticsEligibleStatuses = [
+      "approved",
+      "for_delivery",
+      "for_pickup",
+      "ongoing",
+      "returned",
+      "overdue",
+      "completed",
+      "completed_with_issue",
+    ];
 
     const matchesLogistics =
       logisticsFilter === "All Logistics" ||
-      logistics === logisticsFilter;
+      (logistics === logisticsFilter &&
+        logisticsEligibleStatuses.includes(rawStatus));
 
     const date = tx.date_needed
       ? String(tx.date_needed).substring(0, 10)
       : "";
 
-    const matchesFromDate =
-      !fromDate || (date && date >= fromDate);
-
-    const matchesToDate =
-      !toDate || (date && date <= toDate);
+    const matchesFromDate = !fromDate || (date && date >= fromDate);
+    const matchesToDate = !toDate || (date && date <= toDate);
 
     return (
       matchesSearch &&
@@ -359,17 +392,22 @@ const getStatusClass = (status) => {
   const totalTransactions = transactions.length;
 
   const activeTransactions = transactions.filter((tx) =>
-    ["approved", "for_delivery", "for_pickup", "ongoing"].includes(
-      (tx.status || "").toLowerCase()
-    )
+    [
+      "approved",
+      "for_delivery",
+      "for_pickup",
+      "ongoing",
+    ].includes(normalizeStatus(tx.status))
   ).length;
 
   const totalReturns = transactions.filter((tx) =>
-    ["returned", "overdue"].includes((tx.status || "").toLowerCase())
+    ["returned", "overdue"].includes(normalizeStatus(tx.status))
   ).length;
 
   const completedTransactions = transactions.filter((tx) =>
-    ["completed", "completed_with_issue"].includes((tx.status || "").toLowerCase())
+    ["completed", "completed_with_issue"].includes(
+      normalizeStatus(tx.status)
+    )
   ).length;
 
   const toggleMenu = (id, event) => {
@@ -386,9 +424,7 @@ const getStatusClass = (status) => {
     let left = rect.right - menuWidth;
     let top = rect.bottom + gap;
 
-    if (left < 8) {
-      left = 8;
-    }
+    if (left < 8) left = 8;
 
     if (left + menuWidth > window.innerWidth - 8) {
       left = window.innerWidth - menuWidth - 8;
@@ -405,23 +441,29 @@ const getStatusClass = (status) => {
   const openDetails = (tx) => {
     setSelectedTx(tx);
     setOpenMenuId(null);
+    setActionError("");
   };
 
-  const closeDetails = () => setSelectedTx(null);
-
-  // Soft remove – only removes from the current list (no DB delete)
+  const closeDetails = () => {
+    setSelectedTx(null);
+    setActionError("");
+  };
 
   const handleRemove = async (id) => {
-    if (
-      !window.confirm(
-        "Remove this transaction from the list?\nThe transaction record will remain in the database."
-      )
-    ) {
-      return;
-    }
+    const confirmed = window.confirm(
+      "Remove this transaction from the list?\nThe transaction record will remain in the database."
+    );
+
+    if (!confirmed) return;
 
     try {
-      const token = localStorage.getItem("token");
+      setActionError("");
+
+      const token = getToken();
+
+      if (!token) {
+        throw new Error("Your session has expired. Please log in again.");
+      }
 
       const response = await fetch(
         `http://localhost:5000/api/transactions/${id}/remove`,
@@ -433,32 +475,23 @@ const getStatusClass = (status) => {
         }
       );
 
-      const data = await response.json();
+      await readResponse(response, "Failed to remove transaction.");
 
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to remove transaction."
-        );
-      }
-
-      // Update the transaction list after the backend succeeds
       setTransactions((prev) =>
-        prev.filter((tx) => tx.id !== id)
+        prev.filter((tx) => String(tx.id) !== String(id))
       );
 
       setOpenMenuId(null);
 
-      if (selectedTx?.id === id) {
+      if (selectedTx && String(selectedTx.id) === String(id)) {
         setSelectedTx(null);
       }
-    } catch (error) {
-      console.error("Remove transaction error:", error);
-      window.alert(
-        error.message || "Failed to remove transaction."
-      );
+    } catch (err) {
+      console.error("Remove transaction error:", err);
+      setActionError(err.message || "Failed to remove transaction.");
+      setOpenMenuId(null);
     }
   };
-
 
   const exportCSV = async () => {
     if (filtered.length === 0) {
@@ -495,9 +528,7 @@ const getStatusClass = (status) => {
       formatDate(tx.date_needed),
       tx.time_start || "",
       tx.time_end || "",
-      [tx.equipment_names, tx.facility_name]
-        .filter(Boolean)
-        .join("; "),
+      [tx.equipment_names, tx.facility_name].filter(Boolean).join("; "),
       getLogistics(tx.fulfillment_type),
       getStatus(tx.status),
       tx.purpose || "",
@@ -535,9 +566,10 @@ const getStatusClass = (status) => {
 
     URL.revokeObjectURL(url);
 
-    // Record the CSV export in the admin's Activity History
     try {
-      const token = localStorage.getItem("token");
+      const token = getToken();
+
+      if (!token) return;
 
       const response = await fetch(
         "http://localhost:5000/api/activities/record-export",
@@ -557,11 +589,10 @@ const getStatusClass = (status) => {
       if (!response.ok) {
         console.error("Failed to record CSV export activity.");
       }
-    } catch (error) {
-      console.error("CSV export activity error:", error);
+    } catch (err) {
+      console.error("CSV export activity error:", err);
     }
   };
-
 
   return (
     <div className="admin-page">
@@ -596,6 +627,7 @@ const getStatusClass = (status) => {
               <input
                 type="date"
                 value={fromDate}
+                max={toDate || undefined}
                 onChange={(e) => setFromDate(e.target.value)}
               />
               <FaCalendarAlt className="date-icon" />
@@ -668,6 +700,8 @@ const getStatusClass = (status) => {
             <option>Pending</option>
             <option>Approved</option>
             <option>Active</option>
+            <option>For Delivery</option>
+            <option>For Pickup</option>
             <option>Returned</option>
             <option>Completed</option>
             <option>Completed with Issue</option>
@@ -686,6 +720,12 @@ const getStatusClass = (status) => {
             <option>Delivery</option>
           </select>
         </div>
+
+        {actionError && (
+          <p className="error-message" role="alert">
+            {actionError}
+          </p>
+        )}
 
         <div className="table-wrapper">
           <table className="admin-table">
@@ -729,6 +769,7 @@ const getStatusClass = (status) => {
                           <div className="avatar-sm">
                             {borrower.charAt(0).toUpperCase()}
                           </div>
+
                           <div>
                             <div className="borrower-name">{borrower}</div>
                             <div className="borrower-org">
@@ -757,49 +798,50 @@ const getStatusClass = (status) => {
                         </span>
                       </td>
 
-                    <td className="actions">
-                      <div className="action-menu-wrapper">
-                        <button
-                          type="button"
-                          className="icon-btn tx-action-button"
-                          aria-label="Transaction actions"
-                          aria-expanded={openMenuId === tx.id}
-                          onClick={(e) => toggleMenu(tx.id, e)}
-                        >
-                          <FaEllipsisH />
-                        </button>
+                      <td className="actions">
+                        <div className="action-menu-wrapper">
+                          <button
+                            type="button"
+                            className="icon-btn tx-action-button"
+                            aria-label="Transaction actions"
+                            aria-expanded={openMenuId === tx.id}
+                            onClick={(e) => toggleMenu(tx.id, e)}
+                          >
+                            <FaEllipsisH />
+                          </button>
 
-                        {openMenuId === tx.id &&
-                          createPortal(
-                            <div
-                              className="tx-action-dropdown"
-                              style={{
-                                top: `${menuPosition.top}px`,
-                                left: `${menuPosition.left}px`,
-                              }}
-                            >
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openDetails(tx);
+                          {openMenuId === tx.id &&
+                            createPortal(
+                              <div
+                                className="tx-action-dropdown"
+                                style={{
+                                  position: "fixed",
+                                  top: `${menuPosition.top}px`,
+                                  left: `${menuPosition.left}px`,
                                 }}
                               >
-                                View Details
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openDetails(tx);
+                                  }}
+                                >
+                                  View Details
+                                </button>
 
-                              <button
-                                type="button"
-                                className="danger"
-                                onClick={() => handleRemove(tx.id)}
-                              >
-                                Remove
-                              </button>
-                            </div>,
-                            document.body
-                          )}
-                      </div>
-                    </td>
+                                <button
+                                  type="button"
+                                  className="danger"
+                                  onClick={() => handleRemove(tx.id)}
+                                >
+                                  Remove
+                                </button>
+                              </div>,
+                              document.body
+                            )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })
@@ -815,7 +857,6 @@ const getStatusClass = (status) => {
         </div>
       </div>
 
-      {/* ========== TRANSACTION DETAILS MODAL ========== */}
       {selectedTx && (
         <div className="tx-details-overlay" onClick={closeDetails}>
           <div
@@ -824,26 +865,36 @@ const getStatusClass = (status) => {
           >
             <div className="modal-header">
               <h2>Transaction Details</h2>
-              <button className="modal-close" onClick={closeDetails}>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={closeDetails}
+              >
                 ×
               </button>
             </div>
 
             <div className="modal-body">
-              {/* Tags */}
-              {/* Transaction Code */}
               <div className="tx-tags">
                 <span className="tag tag-id">
                   {selectedTx.request_code || `TX-${selectedTx.id}`}
                 </span>
+
+                <span
+                  className={`status-pill ${getStatusClass(
+                    getStatus(selectedTx.status)
+                  )}`}
+                >
+                  {getStatus(selectedTx.status)}
+                </span>
               </div>
 
-              {/* Info Card */}
               <div className="tx-info-card">
                 <div className="info-row">
                   <div className="info-avatar">
                     {getBorrowerName(selectedTx).charAt(0).toUpperCase()}
                   </div>
+
                   <div className="info-content horizontal">
                     <span className="info-label">Borrower:</span>
                     <div className="info-right">
@@ -872,6 +923,20 @@ const getStatusClass = (status) => {
                   </div>
                 </div>
 
+                {selectedTx.date_end && (
+                  <div className="info-row">
+                    <div className="info-icon-circle">📆</div>
+                    <div className="info-content horizontal">
+                      <span className="info-label">End Date</span>
+                      <div className="info-right">
+                        <div className="info-value">
+                          {formatDate(selectedTx.date_end)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="info-row">
                   <div className="info-icon-circle">👤</div>
                   <div className="info-content horizontal">
@@ -884,16 +949,100 @@ const getStatusClass = (status) => {
                   </div>
                 </div>
 
+                <div className="info-row">
+                  <div className="info-icon-circle">📦</div>
+                  <div className="info-content horizontal">
+                    <span className="info-label">Type / Item:</span>
+                    <div className="info-right">
+                      <div className="info-value">
+                        {getTransactionType(selectedTx)}
+                      </div>
+                      <div className="info-sub">
+                        {selectedTx.equipment_names ||
+                          selectedTx.facility_name ||
+                          "No item information"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="info-row">
+                  <div className="info-icon-circle">🚚</div>
+                  <div className="info-content horizontal">
+                    <span className="info-label">Logistics:</span>
+                    <div className="info-right">
+                      <div className="info-value">
+                        {getLogistics(selectedTx.fulfillment_type)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedTx.purpose && (
+                  <div className="info-row">
+                    <div className="info-icon-circle">📝</div>
+                    <div className="info-content horizontal">
+                      <span className="info-label">Purpose:</span>
+                      <div className="info-right">
+                        <div className="info-value">
+                          {selectedTx.purpose}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedTx.location && (
+                  <div className="info-row">
+                    <div className="info-icon-circle">📍</div>
+                    <div className="info-content horizontal">
+                      <span className="info-label">Location:</span>
+                      <div className="info-right">
+                        <div className="info-value">
+                          {selectedTx.location}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {(selectedTx.handled_by || selectedTx.personnel_name) && (
                   <div className="info-row">
                     <div className="info-icon-circle">🛠️</div>
-
                     <div className="info-content horizontal">
                       <span className="info-label">Handled By:</span>
-
                       <div className="info-right">
                         <div className="info-value">
-                          {selectedTx.handled_by || selectedTx.personnel_name}
+                          {selectedTx.handled_by ||
+                            selectedTx.personnel_name}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedTx.rejection_reason && (
+                  <div className="info-row">
+                    <div className="info-icon-circle">ℹ️</div>
+                    <div className="info-content horizontal">
+                      <span className="info-label">Reason:</span>
+                      <div className="info-right">
+                        <div className="info-value">
+                          {selectedTx.rejection_reason}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedTx.remarks && (
+                  <div className="info-row">
+                    <div className="info-icon-circle">💬</div>
+                    <div className="info-content horizontal">
+                      <span className="info-label">Remarks:</span>
+                      <div className="info-right">
+                        <div className="info-value">
+                          {selectedTx.remarks}
                         </div>
                       </div>
                     </div>
@@ -901,10 +1050,8 @@ const getStatusClass = (status) => {
                 )}
               </div>
 
-              {/* Timeline */}
               <div className="section">
                 <h3 className="timeline-heading">Transaction Timeline</h3>
-
                 <div className="timeline">
                   {getTimelineSteps(selectedTx).map((step) => (
                     <div
@@ -920,6 +1067,7 @@ const getStatusClass = (status) => {
                           <div className="timeline-dot-empty"></div>
                         )}
                       </div>
+
                       <div className="timeline-content">
                         <div className="timeline-title">{step.title}</div>
                         {step.done && step.date && (
