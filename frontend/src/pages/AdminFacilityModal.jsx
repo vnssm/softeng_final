@@ -13,7 +13,7 @@ function AdminFacilityModal({
     description: "",
     capacity: "",
     location: "",
-    is_available: "",
+    is_available: 1,
   });
 
   const [saving, setSaving] = useState(false);
@@ -26,7 +26,8 @@ function AdminFacilityModal({
         description: facility.description || "",
         capacity: facility.capacity ?? "",
         location: facility.location || "",
-        is_available: Number(facility.is_available) === 1 ? 1 : 0,
+        is_available:
+          Number(facility.is_available) === 1 ? 1 : 0,
       });
     } else {
       setForm({
@@ -34,7 +35,7 @@ function AdminFacilityModal({
         description: "",
         capacity: "",
         location: "",
-        is_available: "",
+        is_available: 1,
       });
     }
 
@@ -48,12 +49,12 @@ function AdminFacilityModal({
       ...currentForm,
       [name]: value,
     }));
+
     setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const name = form.name.trim();
     setError("");
 
     if (
@@ -67,15 +68,21 @@ function AdminFacilityModal({
     }
 
     const capacity = Number(form.capacity);
-    if (!Number.isSafeInteger(capacity) || capacity < 1 || capacity > 1000) {
-      setError("Capacity must be a whole number between 1 and 1000.");
+
+    if (
+      !Number.isSafeInteger(capacity) ||
+      capacity < 1 ||
+      capacity > 200
+    ) {
+      setError("Capacity must be a whole number between 1 and 200.");
       return;
     }
+
     if (
-      form.is_available === "" ||
+      !isAddMode &&
       ![0, 1].includes(Number(form.is_available))
     ) {
-      setError("Select facility availability.");
+      setError("Please select facility availability.");
       return;
     }
 
@@ -88,18 +95,26 @@ function AdminFacilityModal({
         ? "http://localhost:5000/api/facilities"
         : `http://localhost:5000/api/facilities/${facility.id}`;
 
+      const requestData = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        capacity,
+        location: form.location.trim(),
+      };
+
+      if (isAddMode) {
+        requestData.is_available = 1;
+      } else {
+        requestData.is_available = Number(form.is_available);
+      }
+
       const response = await fetch(url, {
         method: isAddMode ? "POST" : "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...form,
-          name,
-          capacity,
-          is_available: Number(form.is_available),
-        }),
+        body: JSON.stringify(requestData),
       });
 
       const contentType = response.headers.get("content-type");
@@ -154,7 +169,6 @@ function AdminFacilityModal({
                 onChange={handleChange}
                 placeholder="Enter facility name"
                 maxLength={100}
-                aria-invalid={Boolean(error)}
                 required
               />
             </label>
@@ -180,7 +194,7 @@ function AdminFacilityModal({
                 onChange={handleChange}
                 placeholder="e.g. 100"
                 min="1"
-                max="1000"
+                max="200"
                 step="1"
                 required
               />
@@ -198,36 +212,48 @@ function AdminFacilityModal({
               />
             </label>
 
-            <div className="admin-equipment-full">
-              <span className="admin-equipment-label">
-                Availability *
-              </span>
+            {!isAddMode && (
+              <div className="admin-equipment-full">
+                <span className="admin-equipment-label">
+                  Availability *
+                </span>
 
-              <div className="admin-equipment-status">
-                {[
-                  { value: 1, label: "Available" },
-                  { value: 0, label: "Unavailable" },
-                ].map((status) => (
-                  <button
-                    type="button"
-                    key={status.value}
-                    className={
-                      Number(form.is_available) === status.value
-                        ? "selected"
-                        : ""
-                    }
-                    onClick={() =>
-                      setForm({
-                        ...form,
-                        is_available: status.value,
-                      })
-                    }
-                  >
-                    {status.label}
-                  </button>
-                ))}
+                <div className="admin-equipment-status">
+                  {[
+                    { value: 1, label: "Available" },
+                    { value: 0, label: "Unavailable" },
+                  ].map((status) => (
+                    <button
+                      type="button"
+                      key={status.value}
+                      className={
+                        Number(form.is_available) === status.value
+                          ? "selected"
+                          : ""
+                      }
+                      onClick={() => {
+                        setForm((currentForm) => ({
+                          ...currentForm,
+                          is_available: status.value,
+                        }));
+                        setError("");
+                      }}
+                    >
+                      {status.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {isAddMode && (
+              <div className="admin-equipment-full">
+                <span className="admin-equipment-label">
+                  Availability
+                </span>
+                <p>Available (automatically set for new facilities)</p>
+              </div>
+            )}
           </div>
 
           {error && (

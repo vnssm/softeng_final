@@ -3,6 +3,12 @@ const fs = require("fs");
 const multer = require("multer");
 const pool = require("../config/db");
 const saveAuditLog = require("../utils/auditLogger");
+const { logActivity } = require("./activityController");
+const { notifyAdmins } = require("../utils/notificationHelper");
+
+// =============================================
+// FACILITY PHOTO UPLOAD
+// =============================================
 
 const facilityUploadPath = path.join(__dirname, "../uploads/facilities");
 
@@ -11,44 +17,58 @@ if (!fs.existsSync(facilityUploadPath)) {
 }
 
 const facilityStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, facilityUploadPath),
+  destination: (_req, _file, cb) => {
+    cb(null, facilityUploadPath);
+  },
+
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const name = req.user?.id || req.user?.userId || "facility";
-    cb(null, `facility_${name}_${Date.now()}${ext}`);
+    const userId = req.user?.id || req.user?.userId || "facility";
+
+    cb(null, `facility_${userId}_${Date.now()}${ext}`);
   },
 });
 
 const facilityUpload = multer({
   storage: facilityStorage,
   limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
-      cb(null, true);
-      return;
-    }
 
-    cb(new Error("Only image files are allowed."));
+  fileFilter: (_req, file, cb) => {
+    const extension = path.extname(file.originalname).toLowerCase();
+
+    const isJpeg =
+      [".jpg", ".jpeg"].includes(extension) &&
+      file.mimetype === "image/jpeg";
+
+    const isPng =
+      extension === ".png" &&
+      file.mimetype === "image/png";
+
+    if (isJpeg || isPng) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPG, JPEG, and PNG files are allowed."));
+    }
   },
 });
 
-const facilityStatuses = ["Available", "Unavailable", "Under maintenance"];
+const uploadFacilityImage = (req, res, next) => {
+  facilityUpload.single("image")(req, res, (error) => {
+    if (error) {
+      return res.status(400).json({
+        message: error.message,
+      });
+    }
+
+    next();
+  });
+};
 
 const respondToFacilityError = (error, res, operation) => {
-  console.error(`${operation} error:`, error);
-
-  if (
-    error.code === "ER_BAD_FIELD_ERROR" &&
-    /condition_status/i.test(error.sqlMessage || "")
-  ) {
-    return res.status(503).json({
-      message:
-        "Facility condition support is not installed in the database. Apply backend/migrations/20261021_add_facility_condition_status.sql, then try again.",
-    });
-  }
-
-  return res.status(500).json({ message: "Server error" });
+  console.error(operation + " error:", error);
+  res.status(500).json({ message: "Server error" });
 };
+
 
 exports.getAllFacilities = async (req, res) => {
   try {
@@ -65,6 +85,7 @@ exports.getAllFacilities = async (req, res) => {
   }
 };
 
+
 exports.getFacilityById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -79,94 +100,168 @@ exports.getFacilityById = async (req, res) => {
 
     res.status(200).json(rows[0]);
   } catch (error) {
-    respondToFacilityError(error, res, "Get facility");
+    console.error("Get facility error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
+// CREATE FACILITY
 exports.createFacility = [
-  facilityUpload.single("image"),
+  uploadFacilityImage,
   async (req, res) => {
-    try {
-      const body = req.body || {};
-      const { description, capacity, location } = body;
-      const name = typeof body.name === "string" ? body.name.trim() : "";
-      const numericCapacity =
-        capacity === "" || capacity == null ? null : Number(capacity);
-      const status = body.condition_status ?? "Available";
+  try {
+    const body = req.body || {};
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Facility photo is required.",
+      });
+    }
+    const {
+      description,
+      capacity,
+      location,
+    } = body;
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const requestedAvailability = body.is_available ?? 1;
 
-      if (!req.file) {
-        return res.status(400).json({ message: "Facility photo is required." });
-      }
-      if (!name) {
-        return res.status(400).json({ message: "Facility name is required." });
-      }
-      if (name.length > 150) {
-        return res.status(400).json({
-          message: "Facility name must be 150 characters or fewer.",
-        });
-      }
-      if (
-        numericCapacity === null ||
-        !Number.isInteger(numericCapacity) ||
+    if (!name) {
+      return res.status(400).json({
+        message: "Facility name is required.",
+      });
+    }
+
+    if (name.length > 150) {
+      return res.status(400).json({
+        message: "Facility name must be 150 characters or fewer.",
+      });
+    }
+
+    const numericCapacity = capacity === "" || capacity == null
+      ? null
+      : Number(capacity);
+    if (
+      numericCapacity !== null &&
+      (!Number.isInteger(numericCapacity) ||
         numericCapacity < 1 ||
-        numericCapacity > 1000
-      ) {
-        return res.status(400).json({
-          message: "Capacity must be a whole number between 1 and 1000.",
-        });
-      }
-      if (typeof location !== "string" || !location.trim()) {
-        return res.status(400).json({ message: "Facility location is required." });
-      }
-      if (location.trim().length > 150) {
-        return res.status(400).json({
-          message: "Location must be 150 characters or fewer.",
-        });
-      }
-      if (typeof description !== "string" || !description.trim()) {
-        return res.status(400).json({
-          message: "Facility description is required.",
-        });
-      }
-      if (Buffer.byteLength(description.trim(), "utf8") > 65535) {
-        return res.status(400).json({ message: "Description is too long." });
-      }
-      if (!facilityStatuses.includes(status)) {
-        return res.status(400).json({
-          message: "Select a valid facility condition.",
-        });
-      }
+        numericCapacity > 1000)
+    ) {
+      return res.status(400).json({
+        message: "Capacity must be a whole number between 1 and 1000.",
+      });
+    }
 
-      const imageUrl = `/uploads/facilities/${req.file.filename}`;
-      const isAvailable = status === "Available" ? 1 : 0;
-      const [result] = await pool.query(
-        `INSERT INTO facilities
-          (name, description, capacity, location, image_url,
-           is_available, condition_status, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
-        [
-          name,
-          description.trim(),
-          numericCapacity,
-          location.trim(),
-          imageUrl,
-          isAvailable,
-          status,
-        ]
-      );
+    for (const [field, value, maxLength] of [
+      ["Location", location, 150],
+    ]) {
+      if (value != null && typeof value !== "string") {
+        return res.status(400).json({
+          message: `${field} must be text.`,
+        });
+      }
+      if (typeof value === "string" && value.trim().length > maxLength) {
+        return res.status(400).json({
+          message: `${field} must be ${maxLength} characters or fewer.`,
+        });
+      }
+    }
 
-      const [newRows] = await pool.query(
-        "SELECT * FROM facilities WHERE id = ?",
-        [result.insertId]
-      );
-      await saveAuditLog(
-        req,
-        "Facility Created",
-        "facilities",
-        result.insertId,
-        null,
-        newRows[0]
-      );
+    if (description != null && typeof description !== "string") {
+      return res.status(400).json({
+        message: "Description must be text.",
+      });
+    }
+    if (
+      description != null &&
+      Buffer.byteLength(description.trim(), "utf8") > 65535
+    ) {
+      return res.status(400).json({
+        message: "Description is too long.",
+      });
+    }
+
+    if (![0, 1, "0", "1", false, true].includes(requestedAvailability)) {
+      return res.status(400).json({
+        message: "Select a valid facility availability status.",
+      });
+    }
+
+    const conditionStatus =
+      body.condition_status ??
+      (Number(requestedAvailability) === 1 ? "Available" : "Unavailable");
+    if (
+      !["Available", "Unavailable", "Under maintenance"].includes(
+        conditionStatus
+      )
+    ) {
+      return res.status(400).json({
+        message: "Select a valid facility condition.",
+      });
+    }
+
+    const imageUrl = `/uploads/facilities/${req.file.filename}`;
+
+    const finalConditionStatus = conditionStatus;
+    const finalAvailability =
+      finalConditionStatus === "Available" ? 1 : 0;
+
+    const [result] = await pool.query(
+      `INSERT INTO facilities
+        (name, description, capacity, location, image_url,
+        is_available, condition_status, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+      [
+        name,
+        typeof description === "string"
+          ? description.trim() || null
+          : null,
+        numericCapacity,
+        typeof location === "string"
+          ? location.trim() || null
+          : null,
+        imageUrl,
+        finalAvailability,
+        finalConditionStatus,
+      ]
+    );
+
+    const [newRows] = await pool.query(
+      "SELECT * FROM facilities WHERE id = ?",
+      [result.insertId]
+    );
+
+    await saveAuditLog(
+      req,
+      "Facility Created",
+      "facilities",
+      result.insertId,
+      null,
+      newRows[0] || {
+        name,
+        description,
+        capacity,
+        location,
+        is_available: conditionStatus === "Available" ? 1 : 0,
+        condition_status: conditionStatus,
+        is_active: 1,
+      }
+    );
+
+    const userId = req.user?.id || req.user?.userId;
+
+    await logActivity(
+      userId,
+      "Facility Created",
+      `Added facility: ${name}`,
+      "facility",
+      result.insertId
+    );
+
+    await notifyAdmins(
+      "New Facility Added",
+      `A new facility, ${name}, has been added.`,
+      "facility",
+      "facility_created"
+    );
 
       res.status(201).json({
         message: "Facility added successfully",
@@ -179,144 +274,244 @@ exports.createFacility = [
   },
 ];
 
+// UPDATE FACILITY
 exports.updateFacility = [
-  facilityUpload.single("image"),
+  uploadFacilityImage,
   async (req, res) => {
-    try {
-      const { id } = req.params;
-      const {
-        name,
-        description,
-        capacity,
-        location,
-        is_available,
-        condition_status,
-        is_active,
-      } = req.body || {};
+  try {
+    const { id } = req.params;
 
-      const [existingRows] = await pool.query(
-        "SELECT * FROM facilities WHERE id = ?",
-        [id]
-      );
-      if (existingRows.length === 0) {
-        return res.status(404).json({ message: "Facility not found" });
-      }
+    const {
+      name,
+      description,
+      capacity,
+      location,
+      is_available,
+      condition_status,
+      is_active,
+    } = req.body;
 
-      const oldValues = existingRows[0];
-      const normalizedName = typeof name === "string" ? name.trim() : name;
-      if (name !== undefined && !normalizedName) {
-        return res.status(400).json({ message: "Facility name is required." });
-      }
-      if (normalizedName && normalizedName.length > 150) {
-        return res.status(400).json({
-          message: "Facility name must be 150 characters or fewer.",
-        });
-      }
-      if (
-        capacity !== undefined &&
-        capacity !== null &&
-        capacity !== "" &&
-        (!Number.isInteger(Number(capacity)) ||
-          Number(capacity) < 1 ||
-          Number(capacity) > 1000)
-      ) {
-        return res.status(400).json({
-          message: "Capacity must be a whole number between 1 and 1000.",
-        });
-      }
-      if (
-        condition_status !== undefined &&
-        !facilityStatuses.includes(condition_status)
-      ) {
-        return res.status(400).json({
-          message: "Select a valid facility condition.",
-        });
-      }
-      if (
-        is_available !== undefined &&
-        ![0, 1, "0", "1", false, true].includes(is_available)
-      ) {
-        return res.status(400).json({
-          message: "Select a valid facility availability status.",
-        });
-      }
-
-      const nextStatus =
-        condition_status ??
-        (is_available === undefined
-          ? undefined
-          : Number(is_available) === 1
-            ? "Available"
-            : "Unavailable");
-      const nextAvailability =
-        nextStatus === undefined
-          ? null
-          : nextStatus === "Available"
-            ? 1
-            : 0;
-      const nextActive =
-        nextStatus === undefined
-          ? is_active === undefined
-            ? null
-            : Number(is_active) === 1
-              ? 1
-              : 0
-          : 1;
-      const imageUrl = req.file
-        ? `/uploads/facilities/${req.file.filename}`
-        : oldValues.image_url || null;
-
-      await pool.query(
-        `UPDATE facilities SET
-          name = COALESCE(?, name),
-          description = COALESCE(?, description),
-          capacity = COALESCE(?, capacity),
-          location = COALESCE(?, location),
-          image_url = ?,
-          condition_status = COALESCE(?, condition_status),
-          is_available = COALESCE(?, is_available),
-          is_active = COALESCE(?, is_active)
-         WHERE id = ?`,
-        [
-          normalizedName ?? null,
-          description ?? null,
-          capacity === "" ? null : capacity ?? null,
-          location ?? null,
-          imageUrl,
-          nextStatus ?? null,
-          nextAvailability,
-          nextActive,
-          id,
-        ]
-      );
-
-      const [updatedRows] = await pool.query(
-        "SELECT * FROM facilities WHERE id = ?",
-        [id]
-      );
-      const newValues = updatedRows[0];
-      let action = "Facility Updated";
-
-      if (
-        Number(oldValues.is_active) === 1 &&
-        Number(newValues.is_active) === 0
-      ) {
-        action = "Facility Deactivated";
-      } else if (oldValues.condition_status !== newValues.condition_status) {
-        action = "Facility Condition Changed";
-      } else if (
-        Number(oldValues.is_available) !== Number(newValues.is_available)
-      ) {
-        action = "Facility Availability Changed";
-      }
-
-      await saveAuditLog(req, action, "facilities", id, oldValues, newValues);
-      res.status(200).json({
-        message: "Facility updated successfully",
-        image_url: imageUrl,
+    if (
+      condition_status !== undefined &&
+      !["Available", "Unavailable", "Under maintenance"].includes(
+        condition_status
+      )
+    ) {
+      return res.status(400).json({
+        message: "Select a valid facility condition.",
       });
-    } catch (error) {
-      respondToFacilityError(error, res, "Update facility");
     }
-  },
+
+    if (
+      is_available !== undefined &&
+      ![0, 1, "0", "1", false, true].includes(is_available)
+    ) {
+      return res.status(400).json({
+        message: "Select a valid facility availability status.",
+      });
+    }
+
+    if (
+      capacity !== undefined &&
+      capacity !== null &&
+      capacity !== "" &&
+      (!Number.isInteger(Number(capacity)) ||
+        Number(capacity) < 1 ||
+        Number(capacity) > 1000)
+    ) {
+      return res.status(400).json({
+        message: "Capacity must be a whole number between 1 and 1000.",
+      });
+    }
+
+    if (
+      name !== undefined &&
+      (typeof name !== "string" ||
+        name.trim() === "" ||
+        name.trim().length > 150)
+    ) {
+      return res.status(400).json({
+        message: "Facility name is required and must not exceed 150 characters.",
+      });
+    }
+
+    if (
+      description !== undefined &&
+      description !== null &&
+      typeof description !== "string"
+    ) {
+      return res.status(400).json({
+        message: "Description must be text.",
+      });
+    }
+
+    if (
+      location !== undefined &&
+      location !== null &&
+      typeof location !== "string"
+    ) {
+      return res.status(400).json({
+        message: "Location must be text.",
+      });
+    }
+
+    if (
+      is_active !== undefined &&
+      ![0, 1, "0", "1", false, true].includes(is_active)
+    ) {
+      return res.status(400).json({
+        message: "Select a valid activation status.",
+      });
+    }
+
+    const [existingRows] = await pool.query(
+      "SELECT * FROM facilities WHERE id = ?",
+      [id]
+    );
+
+    if (existingRows.length === 0) {
+      return res.status(404).json({
+        message: "Facility not found",
+      });
+    }
+
+    const existingFacility = existingRows[0];
+
+    const imageUrl = req.file
+      ? `/uploads/facilities/${req.file.filename}`
+      : existingFacility.image_url;
+
+    const oldValues = existingRows[0];
+    let nextConditionStatus = condition_status;
+
+    if (nextConditionStatus === undefined && is_available !== undefined) {
+      nextConditionStatus = Number(is_available) === 1
+        ? "Available"
+        : "Unavailable";
+    }
+
+    const nextAvailability =
+      nextConditionStatus === undefined
+        ? null
+        : nextConditionStatus === "Available"
+        ? 1
+        : 0;
+
+    await pool.query(
+      `UPDATE facilities SET
+        name = COALESCE(?, name),
+        description = ?,
+        capacity = ?,
+        location = ?,
+        image_url = COALESCE(?, image_url),
+        condition_status = COALESCE(?, condition_status),
+        is_available = COALESCE(?, is_available),
+        is_active = COALESCE(?, is_active)
+      WHERE id = ?`,
+      [
+        name === undefined ? null : name,
+        description === undefined
+          ? oldValues.description
+          : description === null
+            ? null
+            : description.trim() || null,
+        capacity === undefined
+          ? oldValues.capacity
+          : capacity === ""
+          ? null
+          : capacity,
+        location === undefined
+          ? oldValues.location
+          : location === null
+            ? null
+            : location.trim() || null,
+        req.file ? imageUrl : null,
+        nextConditionStatus ?? null,
+        nextAvailability,
+        is_active === undefined
+          ? null
+          : Number(is_active) === 1
+          ? 1
+          : 0,
+        id,
+      ]
+    );
+
+    const [updatedRows] = await pool.query(
+      "SELECT * FROM facilities WHERE id = ?",
+      [id]
+    );
+
+    const newValues = updatedRows[0];
+
+    let action = "Facility Updated";
+
+    if (
+      Number(oldValues.is_active) === 1 &&
+      Number(newValues.is_active) === 0
+    ) {
+      action = "Facility Deactivated";
+    } else if (
+      Number(oldValues.is_active) === 0 &&
+      Number(newValues.is_active) === 1
+    ) {
+      action = "Facility Reactivated";
+    } else if (
+      oldValues.condition_status !== newValues.condition_status
+    ) {
+      action = "Facility Condition Changed";
+    } else if (
+      Number(oldValues.is_available) !== Number(newValues.is_available)
+    ) {
+      action = "Facility Availability Changed";
+    }
+
+    await saveAuditLog(
+      req,
+      action,
+      "facilities",
+      id,
+      oldValues,
+      newValues
+    );
+
+    const userId = req.user?.id || req.user?.userId;
+
+    await logActivity(
+      userId,
+      action,
+      `Updated facility: ${newValues.name}`,
+      "facility",
+      id
+    );
+
+    if (
+      Number(oldValues.is_active) === 1 &&
+      Number(newValues.is_active) === 0
+    ) {
+      await notifyAdmins(
+        "Facility Deactivated",
+        `Facility ${newValues.name} has been deactivated.`,
+        "facility",
+        "facility_deactivated"
+      );
+    } else if (
+      Number(oldValues.is_active) === 0 &&
+      Number(newValues.is_active) === 1
+    ) {
+      await notifyAdmins(
+        "Facility Reactivated",
+        `Facility ${newValues.name} has been reactivated.`,
+        "facility",
+        "facility_reactivated"
+      );
+    }
+
+    res.status(200).json({
+      message: "Facility updated successfully",
+    });
+  } catch (error) {
+    respondToFacilityError(error, res, "Update facility");
+  }
+},
 ];

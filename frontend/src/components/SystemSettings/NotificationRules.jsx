@@ -14,20 +14,34 @@ export default function NotificationRules({ notificationData, onChange }) {
 
   return (
     <div className="notification-rules-pane">
-      <h2 className="notification-rules-title">Automated Notification Rules</h2>
+      <h2 className="notification-rules-title">
+        Automated Notification Rules
+      </h2>
 
       <div className="notifications-list">
-        {/* Rule 1: Email Alerts on Transaction Approval */}
+        {/* Email Approval Alerts */}
         <div
           className={`notification-card ${
             notificationData.emailApprovalAlerts ? "active" : ""
           }`}
+          role="button"
+          tabIndex={0}
+          aria-pressed={Boolean(notificationData.emailApprovalAlerts)}
           onClick={() => toggleSetting("emailApprovalAlerts")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleSetting("emailApprovalAlerts");
+            }
+          }}
         >
           <div className="notification-info">
             <h3>Email Alerts on Transaction Approval</h3>
-            <p>Notify borrowers instantly when GSD approves a reservation.</p>
+            <p>
+              Notify borrowers when GSD approves a reservation.
+            </p>
           </div>
+
           <div className="notification-toggle">
             {notificationData.emailApprovalAlerts ? (
               <FaCheckCircle className="check-icon checked" />
@@ -37,17 +51,29 @@ export default function NotificationRules({ notificationData, onChange }) {
           </div>
         </div>
 
-        {/* Rule 2: SMS / Email Reminders for Return Due Date */}
+        {/* Return Due Reminders */}
         <div
           className={`notification-card ${
             notificationData.returnDueReminders ? "active" : ""
           }`}
+          role="button"
+          tabIndex={0}
+          aria-pressed={Boolean(notificationData.returnDueReminders)}
           onClick={() => toggleSetting("returnDueReminders")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleSetting("returnDueReminders");
+            }
+          }}
         >
           <div className="notification-info">
             <h3>SMS / Email Reminders for Return Due Date</h3>
-            <p>Send reminder 24 hours prior to equipment return deadline.</p>
+            <p>
+              Send a reminder 24 hours before the equipment return deadline.
+            </p>
           </div>
+
           <div className="notification-toggle">
             {notificationData.returnDueReminders ? (
               <FaCheckCircle className="check-icon checked" />

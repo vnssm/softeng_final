@@ -8,6 +8,7 @@ import {
   FaCheckCircle,
   FaClock,
   FaExclamationTriangle,
+  FaFileAlt,
   FaSearch,
   FaSyncAlt
 } from "react-icons/fa";
@@ -64,19 +65,44 @@ function Notifications() {
     loadNotifications();
   }, []);
 
+
   const getCategory = (notification) => {
-    const type = (notification.type || "").toLowerCase();
+    const type = (
+      notification.type ||
+      notification.event_type ||
+      ""
+    ).toLowerCase();
+
+    if (type.includes("audit")) return "Audit Logs";
+
+    if (
+      type.includes("analytics") ||
+      type.includes("system_report")
+    ) {
+      return "System Reports";
+    }
+
+    if (type.includes("system_settings")) {
+      return "System Settings";
+    }
 
     if (type.includes("equipment")) return "Equipment";
     if (type.includes("facility")) return "Facility";
+
     if (
       type.includes("reservation") ||
       type.includes("deadline") ||
       type.includes("due") ||
       type.includes("overdue") ||
-      type.includes("request")
+      type.includes("request") ||
+      type.includes("transaction")
     ) {
       return "Requests";
+    }
+
+    if (type.includes("account") || type.includes("user_profile") ||
+        type.includes("user_account")) {
+      return "Account";
     }
 
     return "Account";
@@ -84,6 +110,19 @@ function Notifications() {
 
   const getIcon = (notification) => {
     const type = (notification.type || "").toLowerCase();
+
+    if (type.includes("audit")) return <FaFileAlt />;
+
+    if (
+      type.includes("analytics") ||
+      type.includes("system_report")
+    ) {
+      return <FaFileAlt />;
+    }
+
+    if (type.includes("system_settings")) {
+      return <FaSyncAlt />;
+    }
 
     if (type.includes("maintenance") || type.includes("unavailable")) {
       return <FaExclamationTriangle />;
@@ -254,7 +293,7 @@ function Notifications() {
         </div>
 
         <div className="notifications-filters">
-          {["All", "Unread", "Requests", "Equipment", "Facility", "Account"].map(
+          {["All", "Unread", "Requests", "Equipment", "Facility", "Audit Logs", "System Reports","System Settings","Account"].map(
             (filter) => (
               <button
                 key={filter}

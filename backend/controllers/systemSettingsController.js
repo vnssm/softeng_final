@@ -1,6 +1,8 @@
 
 const pool = require("../config/db");
 const saveAuditLog = require("../utils/auditLogger");
+const { notifyAdmins } = require("../utils/notificationHelper");
+const { logActivity } = require("./activityController");
 
 const generalDefaults = {
   officeName: "General Services Directorate",
@@ -254,6 +256,31 @@ exports.updateSettings = async (req, res) => {
       null,
       selectKeys(oldSettings, keys),
       newSettings
+    );
+
+    const sectionLabels = {
+      general: "General Profile",
+      policies: "Borrowing Policies",
+      notifications: "Notification Rules",
+      security: "Security & Access",
+    };
+
+    // Record the settings update in the admin's Activity History
+    await logActivity(
+      req.user.id || req.user.userId,
+      "system_settings_updated",
+      "Updated " + sectionLabels[selectedSection] + " settings",
+      "system_settings",
+      null
+    );
+
+    await notifyAdmins(
+      "System Settings Updated",
+      "An administrator updated the " +
+        sectionLabels[selectedSection] +
+        " settings.",
+      "system_settings",
+      "system_settings_updated"
     );
 
     const updatedSettings = await readSettings();

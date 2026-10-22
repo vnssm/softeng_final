@@ -106,7 +106,7 @@ export default function AuditLogs() {
     setCurrentPage(1);
   };
 
-  const handleExport = () => {
+  const handleExport = async  () => {
     if (filteredLogs.length === 0) {
       setError("There are no audit logs to export.");
       return;
@@ -166,6 +166,32 @@ export default function AuditLogs() {
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
+
+    // Record the audit logs export in Activity History
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        "http://localhost:5000/api/activities/record-export",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            actionType: "audit_logs_exported",
+            description: "Exported audit logs to CSV",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to record audit logs export activity.");
+      }
+    } catch (error) {
+      console.error("Audit logs export activity error:", error);
+    }
   };
 
   return (

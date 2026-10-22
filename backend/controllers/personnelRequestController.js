@@ -142,6 +142,11 @@ exports.getPersonnelRequests = async (req, res) => {
       LEFT JOIN facilities f ON r.facility_id = f.id
       LEFT JOIN request_items ri ON r.id = ri.request_id
       LEFT JOIN equipment e ON ri.equipment_id = e.id
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM transaction_removals tr
+        WHERE tr.request_id = r.id
+      )
       GROUP BY
         r.id,
         r.request_code,
@@ -585,7 +590,7 @@ exports.inspectReturn = async (req, res) => {
       [
         req.user.id,
         "return_inspected",
-        "Inspected the return for request " + request.request_code,
+        "Inspected returned " + request.request_type + " for request " + request.request_code,
         "request",
         request.id
       ]

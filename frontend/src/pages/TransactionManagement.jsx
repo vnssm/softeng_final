@@ -89,43 +89,67 @@ function TransactionManagement() {
   };
 
   const getStatus = (status) => {
-    const statusMap = {
-      pending: "Pending",
-      approved: "Approved",
-      rejected: "Rejected",
-      for_delivery: "For Delivery",
-      for_pickup: "For Pickup",
-      ongoing: "Active",
-      returned: "Returned",
-      overdue: "Overdue",
-      completed: "Completed",
-      cancelled: "Cancelled",
-    };
-
-    return statusMap[(status || "").toLowerCase()] || status || "Unknown";
+  const statusMap = {
+    pending: "Pending",
+    approved: "Approved",
+    rejected: "Rejected",
+    ongoing: "Active",
+    returned: "Returned",
+    overdue: "Overdue",
+    completed: "Completed",
+    completed_with_issue: "Completed with Issue",
+    cancelled: "Cancelled",
+    for_delivery: "For Delivery",
+    for_pickup: "For Pickup",
   };
 
-  const getStatusClass = (status) => {
-    const map = {
-      Active: "status-active",
-      Approved: "status-approved",
-      "For Delivery": "status-for-release",
-      "For Pickup": "status-for-release",
-      Pending: "status-pending",
-      Assigned: "status-assigned",
-      Returned: "status-completed",
-      Completed: "status-completed",
-      Overdue: "status-overdue",
-      Rejected: "status-overdue",
-      Cancelled: "status-overdue",
-    };
+  const normalizedStatus = (status || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "_");
 
-    return map[status] || "";
+  return statusMap[normalizedStatus] || status || "Unknown";
+};
+
+const getStatusClass = (status) => {
+  const map = {
+    Active: "status-active",
+    Approved: "status-approved",
+    "For Delivery": "status-for-release",
+    "For Pickup": "status-for-release",
+    Pending: "status-pending",
+    Assigned: "status-assigned",
+    Returned: "status-completed",
+    Completed: "status-completed",
+    "Completed with Issue": "status-completed",
+    Overdue: "status-overdue",
+    Rejected: "status-overdue",
+    Cancelled: "status-overdue",
   };
+
+  return map[status] || "";
+};
+
 
   const getLogistics = (value) => {
-    if (!value) return "Not Set";
-    return value.toLowerCase() === "delivery" ? "Delivery" : "Pickup";
+    const logistics = String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+
+    if (
+      ["delivery", "deliver", "for_delivery"].includes(logistics)
+    ) {
+      return "Delivery";
+    }
+
+    if (
+      ["pickup", "pick_up", "for_pickup"].includes(logistics)
+    ) {
+      return "Pickup";
+    }
+
+    return "Not Set";
   };
 
   const formatDate = (value) => {
@@ -195,7 +219,8 @@ function TransactionManagement() {
 
   // Timeline steps that match the design
   const getTimelineSteps = (tx) => {
-    const status = (tx.status || "").toLowerCase();
+    const status = (tx.status || "").toLowerCase()    .trim()
+    .replace(/\s+/g, "_");
 
     const approvedStatuses = [
       "approved",
@@ -205,6 +230,7 @@ function TransactionManagement() {
       "returned",
       "overdue",
       "completed",
+      "completed_with_issue",
     ];
 
     const activeStatuses = [
@@ -212,11 +238,13 @@ function TransactionManagement() {
       "returned",
       "overdue",
       "completed",
+      "completed_with_issue",
     ];
 
     const returnedStatuses = [
       "returned",
       "completed",
+      "completed_with_issue",
     ];
 
     return [
@@ -250,8 +278,15 @@ function TransactionManagement() {
         done: status === "completed",
         date: formatTimelineDateTime(tx.completed_at),
       },
+      {
+        key: "completed_with_issue",
+        title: "Completed with Issue",
+        done: status === "completed_with_issue",
+        date: formatTimelineDateTime(tx.completed_at),
+      },
     ];
   };
+
 
   const filtered = transactions.filter((tx) => {
     const borrower = getBorrowerName(tx).toLowerCase();
@@ -277,24 +312,39 @@ function TransactionManagement() {
       type.toLowerCase().includes(searchText) ||
       items.includes(searchText);
 
-    const matchesType = typeFilter === "All Types" || type === typeFilter;
+    const matchesType =
+      typeFilter === "All Types" || type === typeFilter;
+
+    const rawStatus = (tx.status || "").toLowerCase().trim();
+
+    const activeStatuses = [
+      "approved",
+      "for_delivery",
+      "for_pickup",
+      "ongoing",
+      "overdue",
+    ];
+
     const matchesStatus =
-      statusFilter === "All Status" || status === statusFilter;
+      statusFilter === "All Status" ||
+      (statusFilter === "Active" && activeStatuses.includes(rawStatus)) ||
+      (statusFilter !== "Active" && status === statusFilter);
+
+    // Only approved requests appear in the specific logistics filters.
+
     const matchesLogistics =
-      logisticsFilter === "All Logistics" || logistics === logisticsFilter;
+      logisticsFilter === "All Logistics" ||
+      logistics === logisticsFilter;
 
     const date = tx.date_needed
       ? String(tx.date_needed).substring(0, 10)
       : "";
 
-    const matchesFromDate = !fromDate || (date && date >= fromDate);
-    const matchesToDate = !toDate || (date && date <= toDate);
+    const matchesFromDate =
+      !fromDate || (date && date >= fromDate);
 
-    const approvedForLogistics =
-      logisticsFilter === "All Logistics" ||
-      ["approved", "for_delivery", "for_pickup"].includes(
-        (tx.status || "").toLowerCase()
-      );
+    const matchesToDate =
+      !toDate || (date && date <= toDate);
 
     return (
       matchesSearch &&
@@ -302,8 +352,7 @@ function TransactionManagement() {
       matchesStatus &&
       matchesLogistics &&
       matchesFromDate &&
-      matchesToDate &&
-      approvedForLogistics
+      matchesToDate
     );
   });
 
@@ -320,7 +369,7 @@ function TransactionManagement() {
   ).length;
 
   const completedTransactions = transactions.filter((tx) =>
-    ["completed", "returned"].includes((tx.status || "").toLowerCase())
+    ["completed", "completed_with_issue"].includes((tx.status || "").toLowerCase())
   ).length;
 
   const toggleMenu = (id, event) => {
@@ -361,21 +410,57 @@ function TransactionManagement() {
   const closeDetails = () => setSelectedTx(null);
 
   // Soft remove – only removes from the current list (no DB delete)
-  const handleRemove = (id) => {
+
+  const handleRemove = async (id) => {
     if (
       !window.confirm(
-        "Remove this transaction from the list?\n(It will not be deleted from the database.)"
+        "Remove this transaction from the list?\nThe transaction record will remain in the database."
       )
     ) {
       return;
     }
-    setTransactions((prev) => prev.filter((tx) => tx.id !== id));
-    setOpenMenuId(null);
-    if (selectedTx?.id === id) setSelectedTx(null);
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `http://localhost:5000/api/transactions/${id}/remove`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to remove transaction."
+        );
+      }
+
+      // Update the transaction list after the backend succeeds
+      setTransactions((prev) =>
+        prev.filter((tx) => tx.id !== id)
+      );
+
+      setOpenMenuId(null);
+
+      if (selectedTx?.id === id) {
+        setSelectedTx(null);
+      }
+    } catch (error) {
+      console.error("Remove transaction error:", error);
+      window.alert(
+        error.message || "Failed to remove transaction."
+      );
+    }
   };
 
 
-  const exportCSV = () => {
+  const exportCSV = async () => {
     if (filtered.length === 0) {
       window.alert("There are no transactions to export.");
       return;
@@ -449,6 +534,32 @@ function TransactionManagement() {
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
+
+    // Record the CSV export in the admin's Activity History
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        "http://localhost:5000/api/activities/record-export",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            actionType: "csv_exported",
+            description: "Exported transactions to CSV",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to record CSV export activity.");
+      }
+    } catch (error) {
+      console.error("CSV export activity error:", error);
+    }
   };
 
 
@@ -556,11 +667,10 @@ function TransactionManagement() {
             <option>All Status</option>
             <option>Pending</option>
             <option>Approved</option>
-            <option>For Delivery</option>
-            <option>For Pickup</option>
             <option>Active</option>
             <option>Returned</option>
             <option>Completed</option>
+            <option>Completed with Issue</option>
             <option>Overdue</option>
             <option>Rejected</option>
             <option>Cancelled</option>
@@ -670,7 +780,10 @@ function TransactionManagement() {
                             >
                               <button
                                 type="button"
-                                onClick={() => openDetails(tx)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDetails(tx);
+                                }}
                               >
                                 View Details
                               </button>
@@ -704,7 +817,7 @@ function TransactionManagement() {
 
       {/* ========== TRANSACTION DETAILS MODAL ========== */}
       {selectedTx && (
-        <div className="modal-overlay" onClick={closeDetails}>
+        <div className="tx-details-overlay" onClick={closeDetails}>
           <div
             className="tx-details-modal"
             onClick={(e) => e.stopPropagation()}

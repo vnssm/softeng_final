@@ -3,6 +3,21 @@ const pool = require("../config/db");
 
 exports.getAuditLogs = async (req, res) => {
   try {
+
+    // Record that the admin viewed the audit logs
+    await pool.query(
+      `INSERT INTO activity_logs
+      (user_id, action_type, description, related_type, related_id)
+      VALUES (?, ?, ?, ?, ?)`,
+      [
+        req.user.id || req.user.userId,
+        "audit_logs_viewed",
+        "Viewed system audit logs",
+        "system",
+        null
+      ]
+    );
+
     const [logs] = await pool.query(
       `SELECT
           a.id,

@@ -1,17 +1,24 @@
 
 const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
+const { notifyAdmins } = require("../utils/notificationHelper");
 
 const allowedRoles = ["borrower", "personnel", "admin"];
 
 // Record account activity
-const logAccountActivity = async (userId, actionType, description) => {
+
+const logAccountActivity = async (
+  actorUserId,
+  actionType,
+  description,
+  relatedId = null
+) => {
   try {
     await pool.query(
       `INSERT INTO activity_logs
        (user_id, action_type, description, related_type, related_id)
        VALUES (?, ?, ?, 'user', ?)`,
-      [userId, actionType, description, userId]
+      [actorUserId, actionType, description, relatedId]
     );
   } catch (error) {
     console.error("Account activity log error:", error.message);
@@ -258,9 +265,19 @@ exports.createUser = async (req, res) => {
     );
 
     await logAccountActivity(
-      userResult.insertId,
-      "account_created",
-      "Account created by an administrator"
+      req.user.id,
+      "user_added",
+      "Added " + role + " account: " +
+        first_name.trim() + " " + last_name.trim(),
+      userResult.insertId
+    );
+
+    await notifyAdmins(
+      "New User Account Added",
+      "A new " + role + " account was created for " +
+        first_name.trim() + " " + last_name.trim() + ".",
+      "account",
+      "user_account_created"
     );
 
     res.status(201).json({
@@ -376,9 +393,20 @@ exports.updateUser = async (req, res) => {
     );
 
     await logAccountActivity(
-      userId,
-      "account_updated",
-      "Account details updated by an administrator"
+      req.user.id,
+      "user_edited",
+      "Edited user account: " +
+        first_name.trim() + " " + last_name.trim(),
+      userId
+    );
+
+    await notifyAdmins(
+      "User Profile Updated",
+      "The account details for " +
+        first_name.trim() + " " + last_name.trim() +
+        " were updated.",
+      "account",
+      "user_profile_updated"
     );
 
     res.status(200).json({
@@ -408,6 +436,21 @@ exports.deactivateUser = async (req, res) => {
       });
     }
 
+    const [users] = await pool.query(
+      `SELECT first_name, last_name, role
+      FROM users
+      WHERE id = ? AND is_active = 1`,
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        message: "User not found or already inactive."
+      });
+    }
+
+    const removedUser = users[0];
+
     const [result] = await pool.query(
       "UPDATE users SET is_active = 0 WHERE id = ? AND is_active = 1",
       [userId]
@@ -420,9 +463,19 @@ exports.deactivateUser = async (req, res) => {
     }
 
     await logAccountActivity(
-      userId,
-      "account_deactivated",
-      "Account deactivated by an administrator"
+      req.user.id,
+      "user_soft_removed",
+      "Soft-removed " + removedUser.role +
+        " account: " + removedUser.first_name +
+        " " + removedUser.last_name,
+      userId
+    );
+
+    await notifyAdmins(
+      "User Account Deactivated",
+      "User account ID " + userId + " was deactivated.",
+      "account",
+      "user_account_deactivated"
     );
 
     res.status(200).json({

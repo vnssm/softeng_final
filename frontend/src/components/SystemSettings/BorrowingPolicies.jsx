@@ -66,6 +66,8 @@ export default function BorrowingPolicies({ policiesData, onChange }) {
             onChange={onChange}
             min="1"
             max="365"
+            step="1"
+            required
           />
         </div>
       </div>

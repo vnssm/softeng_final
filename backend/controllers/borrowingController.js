@@ -1,8 +1,6 @@
 
 const db = require("../config/db");
 
-const { logActivity } = require("./activityController");
-
 // Create a new equipment borrowing request
 exports.createBorrowing = async (req, res) => {
   const userId = req.user.id || req.user.userId;
@@ -51,7 +49,10 @@ exports.createBorrowing = async (req, res) => {
   const startDateValue = new Date(`${startDate}T00:00:00`);
   const endDateValue = new Date(`${endDate}T00:00:00`);
 
-  if (Number.isNaN(startDateValue.getTime()) || Number.isNaN(endDateValue.getTime())) {
+  if (
+    Number.isNaN(startDateValue.getTime()) ||
+    Number.isNaN(endDateValue.getTime())
+  ) {
     return res.status(400).json({
       message: "Invalid borrowing date. Please choose a valid date."
     });
@@ -70,7 +71,14 @@ exports.createBorrowing = async (req, res) => {
   const toMinutes = (timeValue) => {
     const [hours, minutes] = (timeValue || "").split(":").map(Number);
 
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    if (
+      Number.isNaN(hours) ||
+      Number.isNaN(minutes) ||
+      hours < 0 ||
+      hours > 23 ||
+      minutes < 0 ||
+      minutes > 59
+    ) {
       return null;
     }
 
@@ -86,9 +94,14 @@ exports.createBorrowing = async (req, res) => {
     });
   }
 
-  if (startMinutes < 7 * 60 || endMinutes > 17 * 60 || endMinutes <= startMinutes) {
+  if (
+    startMinutes < 7 * 60 ||
+    endMinutes > 17 * 60 ||
+    endMinutes <= startMinutes
+  ) {
     return res.status(400).json({
-      message: "Borrowing time must be between 7:00 AM and 5:00 PM, and the end time must be later than the start time."
+      message:
+        "Borrowing time must be between 7:00 AM and 5:00 PM, and the end time must be later than the start time."
     });
   }
 
@@ -135,13 +148,12 @@ exports.createBorrowing = async (req, res) => {
 
     const equipment = equipmentRows[0];
 
-    if (
-      !["Available", "Good"].includes(equipment.condition_status)
-    ) {
+    if (!["Available", "Good"].includes(equipment.condition_status)) {
       await connection.rollback();
 
       return res.status(400).json({
-        message: "This equipment is not available for borrowing due to its condition.",
+        message:
+          "This equipment is not available for borrowing due to its condition."
       });
     }
 
@@ -149,7 +161,8 @@ exports.createBorrowing = async (req, res) => {
       await connection.rollback();
 
       return res.status(400).json({
-        message: "The requested quantity exceeds the currently available quantity."
+        message:
+          "The requested quantity exceeds the currently available quantity."
       });
     }
 
@@ -195,10 +208,11 @@ exports.createBorrowing = async (req, res) => {
       [requestResult.insertId, equipmentId, Number(quantity)]
     );
 
+    // Record the activity
     await connection.query(
       `INSERT INTO activity_logs
-      (user_id, action_type, description, related_type, related_id)
-      VALUES (?, ?, ?, ?, ?)`,
+       (user_id, action_type, description, related_type, related_id)
+       VALUES (?, ?, ?, ?, ?)`,
       [
         userId,
         "equipment_request",
@@ -208,11 +222,11 @@ exports.createBorrowing = async (req, res) => {
       ]
     );
 
-    // Create a notification for the borrower
+    // Notify the borrower
     await connection.query(
       `INSERT INTO notifications
-      (user_id, title, message, type, event_type, related_request_id)
-      VALUES (?, ?, ?, ?, ?, ?)`,
+       (user_id, title, message, type, event_type, related_request_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       [
         userId,
         "Borrowing Request Submitted",
@@ -225,19 +239,19 @@ exports.createBorrowing = async (req, res) => {
       ]
     );
 
-    // Notify GSD personnel about the new equipment request
+    // Notify GSD personnel and admins
     const [personnelUsers] = await connection.query(
       `SELECT id
-      FROM users
-      WHERE role IN ('personnel', 'admin')
-        AND is_active = TRUE`
+       FROM users
+       WHERE role IN ('personnel', 'admin')
+         AND is_active = TRUE`
     );
 
     for (const personnel of personnelUsers) {
       await connection.query(
         `INSERT INTO notifications
-        (user_id, title, message, type, event_type, related_request_id)
-        VALUES (?, ?, ?, ?, ?, ?)`,
+         (user_id, title, message, type, event_type, related_request_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           personnel.id,
           "New Equipment Request",
@@ -314,7 +328,11 @@ exports.getMyBorrowings = async (req, res) => {
        INNER JOIN equipment e ON ri.equipment_id = e.id
        WHERE r.user_id = ?
          AND r.request_type = 'equipment'
-         AND LOWER(TRIM(COALESCE(r.status, ''))) NOT IN ('return', 'returned', 'completed', 'completed_with_issue')
+         AND NOT EXISTS (
+           SELECT 1
+           FROM transaction_removals tr
+           WHERE tr.request_id = r.id
+         )
        ORDER BY r.created_at DESC`,
       [userId]
     );
@@ -332,6 +350,7 @@ exports.getMyBorrowings = async (req, res) => {
 };
 
 
+// Mark an equipment borrowing request as returned
 exports.returnBorrowing = async (req, res) => {
   const userId = req.user.id || req.user.userId;
   const requestId = req.params.id;
@@ -354,6 +373,7 @@ exports.returnBorrowing = async (req, res) => {
 
     if (rows.length === 0) {
       await connection.rollback();
+
       return res.status(404).json({
         message: "Equipment request not found."
       });
@@ -363,8 +383,10 @@ exports.returnBorrowing = async (req, res) => {
 
     if (!["approved", "overdue"].includes(request.status)) {
       await connection.rollback();
+
       return res.status(400).json({
-        message: "Only approved or overdue requests can be marked as returned."
+        message:
+          "Only approved or overdue requests can be marked as returned."
       });
     }
 
@@ -375,6 +397,7 @@ exports.returnBorrowing = async (req, res) => {
       [requestId, userId]
     );
 
+    // Record the return activity
     await connection.query(
       `INSERT INTO activity_logs
        (user_id, action_type, description, related_type, related_id)
@@ -388,6 +411,7 @@ exports.returnBorrowing = async (req, res) => {
       ]
     );
 
+    // Notify the borrower
     await connection.query(
       `INSERT INTO notifications
        (user_id, title, message, type, event_type, related_request_id)
@@ -395,14 +419,16 @@ exports.returnBorrowing = async (req, res) => {
       [
         userId,
         "Return Submitted",
-        "Your equipment request " + request.request_code +
-          " has been marked as returned.",
+        "Your equipment request " +
+          request.request_code +
+          " has been marked as returned and is awaiting inspection by GSD personnel.",
         "success",
         "request_returned",
         requestId
       ]
     );
 
+    // Notify GSD personnel and admins
     await connection.query(
       `INSERT INTO notifications
        (user_id, title, message, type, event_type, related_request_id)
@@ -412,10 +438,12 @@ exports.returnBorrowing = async (req, res) => {
          AND is_active = 1`,
       [
         "Equipment Returned",
-        `Equipment request ${request.request_code} has been marked as returned.`,
+        "Equipment request " +
+          request.request_code +
+          " has been marked as returned.",
         "warning",
         "request_returned",
-        requestId,
+        requestId
       ]
     );
 

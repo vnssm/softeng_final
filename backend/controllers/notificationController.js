@@ -185,7 +185,55 @@ async function createAutomaticNotifications(userId) {
   );
 }
 
-// Get notifications for the logged-in borrower
+// Create a weekly audit log report notification for admins
+async function createWeeklyAuditNotifications() {
+  await db.query(
+    `INSERT INTO notifications
+      (user_id, title, message, type, event_type)
+     SELECT
+       u.id,
+       'Weekly Audit Logs Report Ready',
+       'Your weekly report for audit logs is ready.',
+       'audit_logs',
+       'weekly_audit_report_ready'
+     FROM users u
+     WHERE u.role = 'admin'
+       AND u.is_active = 1
+       AND NOT EXISTS (
+         SELECT 1
+         FROM notifications n
+         WHERE n.user_id = u.id
+           AND n.event_type = 'weekly_audit_report_ready'
+           AND YEARWEEK(n.created_at, 3) = YEARWEEK(CURDATE(), 3)
+       )`
+  );
+}
+
+// Create a weekly system analytics report notification for admins
+async function createWeeklySystemReportNotifications() {
+  await db.query(
+    `INSERT INTO notifications
+      (user_id, title, message, type, event_type)
+     SELECT
+       u.id,
+       'Weekly System Analytics Report Ready',
+       'Your weekly system analytics report is ready to review.',
+       'analytics_report',
+       'weekly_system_report_ready'
+     FROM users u
+     WHERE u.role = 'admin'
+       AND u.is_active = 1
+       AND NOT EXISTS (
+         SELECT 1
+         FROM notifications n
+         WHERE n.user_id = u.id
+           AND n.event_type = 'weekly_system_report_ready'
+           AND YEARWEEK(n.created_at, 3) = YEARWEEK(CURDATE(), 3)
+       )`
+  );
+}
+
+// Get notifications for the logged-in user
 exports.getMyNotifications = async (req, res) => {
   const userId = req.user.id || req.user.userId;
 
@@ -196,7 +244,18 @@ exports.getMyNotifications = async (req, res) => {
   }
 
   try {
-    // Fetch notifications only. Reminder generation is handled by actual request lifecycle events.
+    // Generate reminders for borrowers
+    if (req.user.role === "borrower") {
+      await createAutomaticNotifications(userId);
+    }
+
+    // Generate weekly reports for admins
+    if (req.user.role === "admin") {
+      await createWeeklyAuditNotifications();
+      await createWeeklySystemReportNotifications();
+    }
+
+    // Retrieve notifications for the logged-in user
     const [notifications] = await db.query(
       `SELECT
          id,

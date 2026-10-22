@@ -49,7 +49,7 @@ export default function Reports() {
     fetchReports();
   }, [timeRange]);
 
-  const handleDownload = () => {
+  const handleDownload = async  () => {
     if (
       equipmentData.length === 0 &&
       facilityData.length === 0 &&
@@ -122,6 +122,41 @@ export default function Reports() {
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
+
+        // Record the report export in the admin's Activity History
+    try {
+      const token = localStorage.getItem("token");
+
+      let actionType = "system_report_exported";
+
+      if (timeRange === "Last 7 Days") {
+        actionType = "weekly_system_report_exported";
+      }
+
+      const response = await fetch(
+        "http://localhost:5000/api/activities/record-export",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            actionType: actionType,
+            description:
+              timeRange === "Last 7 Days"
+                ? "Exported weekly system report"
+                : `Exported system report for ${timeRange}`,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to record system report export activity.");
+      }
+    } catch (error) {
+      console.error("System report export activity error:", error);
+    }
   };
 
   return (

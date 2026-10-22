@@ -308,10 +308,20 @@ exports.getMyReservations = async (req, res) => {
          f.name AS facility_name
        FROM requests r
        INNER JOIN facilities f ON r.facility_id = f.id
-       WHERE r.user_id = ?
-         AND r.request_type = 'facility'
-         AND LOWER(TRIM(COALESCE(r.status, ''))) NOT IN ('return', 'returned', 'completed', 'completed_with_issue')
-       ORDER BY r.created_at DESC`,
+              WHERE r.user_id = ?
+              AND r.request_type = 'facility'
+              AND NOT EXISTS (
+                SELECT 1
+                FROM transaction_removals tr
+                WHERE tr.request_id = r.id
+              )
+              AND LOWER(TRIM(COALESCE(r.status, ''))) NOT IN (
+                'return',
+                'returned',
+                'completed',
+                'completed_with_issue'
+              )
+            ORDER BY r.created_at DESC`,
       [userId]
     );
 

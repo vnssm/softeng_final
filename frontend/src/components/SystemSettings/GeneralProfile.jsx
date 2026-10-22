@@ -1,11 +1,14 @@
+
 import React from "react";
 import "./GeneralProfile.css";
 
 export default function GeneralProfile({ formData, onChange }) {
   return (
     <div className="general-profile-pane">
-      <h2 className="general-profile-title">Directorate Organization Profile</h2>
-      
+      <h2 className="general-profile-title">
+        Directorate Organization Profile
+      </h2>
+
       <div className="general-profile-grid">
         <div className="profile-form-group">
           <label htmlFor="officeName">Directorate Office Name</label>
@@ -16,6 +19,8 @@ export default function GeneralProfile({ formData, onChange }) {
             value={formData.officeName}
             onChange={onChange}
             placeholder="e.g. General Services Directorate"
+            maxLength={150}
+            required
           />
         </div>
 
@@ -28,6 +33,8 @@ export default function GeneralProfile({ formData, onChange }) {
             value={formData.contactEmail}
             onChange={onChange}
             placeholder="e.g. gsd@mmsu.edu.ph"
+            maxLength={150}
+            required
           />
         </div>
 
@@ -40,6 +47,8 @@ export default function GeneralProfile({ formData, onChange }) {
             value={formData.operatingHours}
             onChange={onChange}
             placeholder="e.g. 8:00 AM - 5:00 PM"
+            maxLength={100}
+            required
           />
         </div>
 
@@ -52,6 +61,8 @@ export default function GeneralProfile({ formData, onChange }) {
             value={formData.campusLocation}
             onChange={onChange}
             placeholder="e.g. Batac City, Ilocos Norte"
+            maxLength={150}
+            required
           />
         </div>
       </div>

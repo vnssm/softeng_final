@@ -85,6 +85,15 @@ export default function SystemSettings() {
           requireInspection: data.requireInspection,
           maxBorrowingDays: data.maxBorrowingDays,
         });
+        setNotificationData({
+          emailApprovalAlerts: data.emailApprovalAlerts,
+          returnDueReminders: data.returnDueReminders,
+        });
+
+        setSecurityData({
+          roleBasedAccess: data.roleBasedAccess,
+          sessionTimeout: data.sessionTimeout,
+        });
       } catch (err) {
         setError(err.message || "Failed to load system settings.");
       } finally {
@@ -112,9 +121,40 @@ export default function SystemSettings() {
   const handlePoliciesChange = (e) => {
     const { name, value, type, checked } = e.target;
 
+    const newValue =
+      type === "checkbox"
+        ? checked
+        : value;
+
     setPoliciesData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: newValue,
+    }));
+
+    setMessage("");
+    setError("");
+  };
+
+  // Notification Rules changes
+  const handleNotificationsChange = (e) => {
+    const { name, value } = e.target;
+
+    setNotificationData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setMessage("");
+    setError("");
+  };
+
+  // Security & Access changes
+  const handleSecurityChange = (e) => {
+    const { name, value } = e.target;
+
+    setSecurityData((prev) => ({
+      ...prev,
+      [name]: value,
     }));
 
     setMessage("");
@@ -150,6 +190,54 @@ export default function SystemSettings() {
         settingsToSave = securityData;
       }
 
+      // Validate General Profile
+      if (activeTab === "general") {
+        const officeName = generalData.officeName.trim();
+        const contactEmail = generalData.contactEmail.trim();
+        const operatingHours = generalData.operatingHours.trim();
+        const campusLocation = generalData.campusLocation.trim();
+
+        if (
+          officeName === "" ||
+          contactEmail === "" ||
+          operatingHours === "" ||
+          campusLocation === ""
+        ) {
+          throw new Error("Please complete all General Profile fields.");
+        }
+
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailPattern.test(contactEmail)) {
+          throw new Error("Please enter a valid contact email.");
+        }
+
+        settingsToSave = {
+          officeName,
+          contactEmail,
+          operatingHours,
+          campusLocation,
+        };
+      }
+
+      // Validate Borrowing Policies
+      if (activeTab === "policies") {
+        const days = Number(policiesData.maxBorrowingDays);
+
+        if (
+          policiesData.maxBorrowingDays === "" ||
+          !Number.isInteger(days) ||
+          days < 1 ||
+          days > 365
+        ) {
+          throw new Error(
+            "Maximum borrowing days must be a whole number from 1 to 365."
+          );
+        }
+
+        settingsToSave.maxBorrowingDays = days;
+      }
+
       const response = await fetch(
         "http://localhost:5000/api/system-settings",
         {
@@ -183,16 +271,16 @@ export default function SystemSettings() {
           maxBorrowingDays: data.settings.maxBorrowingDays,
         });
       } else if (activeTab === "notifications") {
-        setNotificationData({
-          emailApprovalAlerts: data.settings.emailApprovalAlerts,
-          returnDueReminders: data.settings.returnDueReminders,
-        });
-      } else if (activeTab === "security") {
-        setSecurityData({
-          roleBasedAccess: data.settings.roleBasedAccess,
-          sessionTimeout: data.settings.sessionTimeout,
-        });
-      }
+          setNotificationData({
+            emailApprovalAlerts: data.settings.emailApprovalAlerts,
+            returnDueReminders: data.settings.returnDueReminders,
+          });
+        } else if (activeTab === "security") {
+          setSecurityData({
+            roleBasedAccess: data.settings.roleBasedAccess,
+            sessionTimeout: data.settings.sessionTimeout,
+          });
+        }
 
       setMessage(data.message || "Settings saved successfully.");
     } catch (err) {
@@ -224,14 +312,7 @@ export default function SystemSettings() {
         return (
           <NotificationRules
             notificationData={notificationData}
-            onChange={(e) => {
-              const { name, value, type, checked } = e.target;
-
-              setNotificationData((prev) => ({
-                ...prev,
-                [name]: type === "checkbox" ? checked : value,
-              }));
-            }}
+            onChange={handleNotificationsChange}
           />
         );
 
@@ -239,17 +320,9 @@ export default function SystemSettings() {
         return (
           <SecurityAccess
             securityData={securityData}
-            onChange={(e) => {
-              const { name, value, type, checked } = e.target;
-
-              setSecurityData((prev) => ({
-                ...prev,
-                [name]: type === "checkbox" ? checked : value,
-              }));
-            }}
+            onChange={handleSecurityChange}
           />
         );
-
       default:
         return null;
     }

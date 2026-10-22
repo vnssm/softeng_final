@@ -89,7 +89,30 @@ function History() {
   };
 
   const formatAction = (actionType) => {
-    if (!actionType) return "Account Activity";
+    const actionLabels = {
+      system_settings_updated: "System Settings Updated",
+      audit_logs_viewed: "Viewed Audit Logs",
+      audit_logs_exported: "Audit Logs Exported",
+      csv_exported: "CSV Exported",
+      system_report_exported: "System Report Exported",
+      weekly_system_report_exported: "Weekly System Report Exported",
+      weekly_audit_logs_exported: "Weekly Audit Logs Exported",
+      transaction_removed: "Transaction Removed",
+      equipment_request: "Equipment Request Submitted",
+      equipment_return: "Equipment Returned",
+      facility_reservation: "Facility Reservation Submitted",
+      request_approved: "Request Approved",
+      request_rejected: "Request Rejected",
+      return_inspected: "Returned Equipment Inspected"
+    };
+
+    if (!actionType) {
+      return "Account Activity";
+    }
+
+    if (actionLabels[actionType]) {
+      return actionLabels[actionType];
+    }
 
     return actionType
       .split("_")

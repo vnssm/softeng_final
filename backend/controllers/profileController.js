@@ -65,7 +65,7 @@ exports.uploadProfilePicture = [
                     `INSERT INTO activity_logs
                      (user_id, action_type, description, related_type, related_id)
                      VALUES (?, ?, ?, ?, ?)`,
-                    [userId, "profile_picture_update", "Changed the account profile picture", "user", userId]
+                    [userId, "profile_picture_update", "Updated their profile picture", "user", userId]
                 );
                 await connection.commit();
             } catch (error) {
@@ -331,7 +331,7 @@ const userIdValue =
       `INSERT INTO activity_logs
        (user_id, action_type, description, related_type, related_id)
        VALUES (?, ?, ?, ?, ?)`,
-      [userId, "profile_update", "Updated account profile details", "user", userId]
+      [userId, "profile_update", "Updated their profile information", "user", userId]
     );
     await connection.commit();
 
