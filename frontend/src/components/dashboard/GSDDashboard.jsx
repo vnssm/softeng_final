@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./GSDDashboard.css";
+import { API_URL } from "../../config";
 
 function GSDDashboard() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ function GSDDashboard() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/dashboard/personnel", {
+      const res = await fetch(`${API_URL}/dashboard/personnel`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

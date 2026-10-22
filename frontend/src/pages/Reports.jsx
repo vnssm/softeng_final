@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaDownload, FaChartBar, FaChartLine } from "react-icons/fa";
 import "./UserManagement.css";
 import "./Reports.css";
+import { API_URL } from "../config";
 
 export default function Reports() {
   const [timeRange, setTimeRange] = useState("Last 30 Days");
@@ -22,7 +23,7 @@ export default function Reports() {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          `http://localhost:5000/api/reports?range=${encodeURIComponent(timeRange)}`,
+          `${API_URL}/reports?range=${encodeURIComponent(timeRange)}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -134,7 +135,7 @@ export default function Reports() {
       }
 
       const response = await fetch(
-        "http://localhost:5000/api/activities/record-export",
+        `${API_URL}/activities/record-export`,
         {
           method: "POST",
           headers: {

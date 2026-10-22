@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { FaSearch } from "react-icons/fa";
 import "./AdminEquipment.css";
+import { API_URL } from "../../config";
 
 function AdminEquipment() {
   const [equipments, setEquipments] = useState([]);
@@ -18,7 +19,7 @@ function AdminEquipment() {
           sessionStorage.getItem("token");
 
         const response = await fetch(
-          "http://localhost:5000/api/equipment",
+          `${API_URL}/equipment`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

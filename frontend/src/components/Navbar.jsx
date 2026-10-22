@@ -3,8 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaBell, FaChevronDown, FaBars } from "react-icons/fa";
 import "./navbar.css";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL, API_BASE } from "../config";
 
 function Navbar({ onToggleSidebar }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -83,7 +82,7 @@ function Navbar({ onToggleSidebar }) {
       sessionStorage.getItem("token");
 
     if (token) {
-      fetch("http://localhost:5000/api/auth/logout", {
+      fetch(`${API_URL}/auth/logout`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -121,7 +120,7 @@ function Navbar({ onToggleSidebar }) {
   const profileImageUrl = profileUser?.profile_image
     ? profileUser.profile_image.startsWith("http")
       ? profileUser.profile_image
-      : "http://localhost:5000" + profileUser.profile_image
+      : API_BASE + profileUser.profile_image
     : "";
 
   return (

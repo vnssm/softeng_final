@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import BorrowModal from "./BorrowModal";
 import "./BorrowerEquipment.css";
+import { API_URL, API_BASE } from "../../config";
 
 function BorrowerEquipment() {
   const [equipments, setEquipments] = useState([]);
@@ -19,7 +20,7 @@ function BorrowerEquipment() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "http://localhost:5000/api/equipment",
+        `${API_URL}/equipment`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -129,7 +130,7 @@ function BorrowerEquipment() {
                 <div className="equipment-image">
                   {item.image_url ? (
                     <img
-                      src={`http://localhost:5000${item.image_url}`}
+                      src={`${API_BASE}${item.image_url}`}
                       alt={item.name}
                       className="equipment-photo"
                     />

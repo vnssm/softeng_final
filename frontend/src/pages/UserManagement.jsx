@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { FaSearch, FaPlus, FaEdit, FaTrash, FaTimes } from "react-icons/fa";
 import "./UserManagement.css";
+import { API_URL } from "../config";
 
 const emptyForm = {
   employee_id: "",
@@ -33,7 +34,7 @@ function UserManagement() {
       setLoading(true);
       setError("");
 
-      const response = await fetch("http://localhost:5000/api/users", {
+      const response = await fetch(`${API_URL}/users`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -174,8 +175,8 @@ function UserManagement() {
       const token = localStorage.getItem("token");
 
       const url = editId
-        ? `http://localhost:5000/api/users/${editId}`
-        : "http://localhost:5000/api/users";
+        ? `${API_URL}/users/${editId}`
+        : `${API_URL}/users`;
 
       const response = await fetch(url, {
         method: editId ? "PUT" : "POST",
@@ -222,7 +223,7 @@ function UserManagement() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/users/${user.id}/deactivate`,
+        `${API_URL}/users/${user.id}/deactivate`,
         {
           method: "PATCH",
           headers: {

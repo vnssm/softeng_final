@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { FaSearch, FaPlus, FaEdit, FaTrash, FaUndo } from "react-icons/fa";
 import AdminEquipmentModal from "./AdminEquipmentModal";
 import "./UserManagement.css";
+import { API_URL } from "../config";
 
 function EquipmentManagement() {
   const [equipments, setEquipments] = useState([]);
@@ -21,7 +22,7 @@ function EquipmentManagement() {
 
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/equipment", {
+      const res = await fetch(`${API_URL}/equipment`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -119,7 +120,7 @@ function EquipmentManagement() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://localhost:5000/api/equipment/${item.id}`,
+        `${API_URL}/equipment/${item.id}`,
         {
           method: "PUT",
           headers: {

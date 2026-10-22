@@ -3,6 +3,7 @@ import { FaSearch } from "react-icons/fa";
 import FacilityViewModal from "./FacilityViewModal";
 import FacilityReserveModal from "./FacilityReserveModal";
 import "./BorrowerFacilities.css";
+import { API_URL, API_BASE } from "../../config";
 
 function BorrowerFacilities() {
   const [search, setSearch] = useState("");
@@ -21,7 +22,7 @@ function BorrowerFacilities() {
 
       const token = localStorage.getItem("token");
 
-      const response = await fetch("http://localhost:5000/api/facilities", {
+      const response = await fetch(`${API_URL}/facilities`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -155,7 +156,7 @@ function BorrowerFacilities() {
                 <div className="facility-image">
                   {facility.image_url ? (
                     <img
-                      src={`http://localhost:5000${facility.image_url}`}
+                      src={`${API_BASE}${facility.image_url}`}
                       alt={facility.name}
                       style={{
                         width: "100%",

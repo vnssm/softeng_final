@@ -8,6 +8,7 @@ import {
 } from "react-icons/fa";
 import "./UserManagement.css";
 import "./TransactionManagement.css";
+import { API_URL } from "../config";
 
 function TransactionManagement() {
   const [transactions, setTransactions] = useState([]);
@@ -86,7 +87,7 @@ function TransactionManagement() {
       }
 
       const response = await fetch(
-        "http://localhost:5000/api/transactions",
+        `${API_URL}/transactions`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -466,7 +467,7 @@ function TransactionManagement() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/transactions/${id}/remove`,
+        `${API_URL}/transactions/${id}/remove`,
         {
           method: "DELETE",
           headers: {
@@ -572,7 +573,7 @@ function TransactionManagement() {
       if (!token) return;
 
       const response = await fetch(
-        "http://localhost:5000/api/activities/record-export",
+        `${API_URL}/activities/record-export`,
         {
           method: "POST",
           headers: {

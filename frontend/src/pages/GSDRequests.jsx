@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Navigate, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { FaLayerGroup, FaMapMarkerAlt } from "react-icons/fa";
 import "./GSDRequests.css";
+import { API_URL } from "../config";
 
 function formatDate(date) {
   if (!date) return "—";
@@ -105,7 +106,7 @@ function GSDRequests() {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          "http://localhost:5000/api/requests/requests",
+          `${API_URL}/requests/requests`,
           {
             headers: {
               Authorization: "Bearer " + token,
@@ -318,7 +319,7 @@ function GSDRequests() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        `http://localhost:5000/api/requests/requests/${selectedItem.id}/inspect-return`,
+        `${API_URL}/requests/requests/${selectedItem.id}/inspect-return`,
         {
           method: "POST",
           headers: {
@@ -415,7 +416,7 @@ function GSDRequests() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        `http://localhost:5000/api/requests/requests/${approvalItem.id}/approve`,
+        `${API_URL}/requests/requests/${approvalItem.id}/approve`,
         {
           method: "POST",
           headers: {
@@ -465,7 +466,7 @@ const handleRejectSend = async () => {
     const token = localStorage.getItem("token");
 
     const response = await fetch(
-      `http://localhost:5000/api/requests/requests/${approvalItem.id}/reject`,
+      `${API_URL}/requests/requests/${approvalItem.id}/reject`,
       {
         method: "POST",
         headers: {

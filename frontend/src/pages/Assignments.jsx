@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaLayerGroup, FaMapMarkerAlt } from "react-icons/fa";
 import "./Assignments.css";
+import { API_URL } from "../config";
 
 function Assignments() {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -17,7 +18,7 @@ function Assignments() {
 
       try {
         const response = await fetch(
-          "http://localhost:5000/api/assignments/my-assignments",
+          `${API_URL}/assignments/my-assignments`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

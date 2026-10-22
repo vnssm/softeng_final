@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./BorrowModal.css";
+import { API_URL } from "../../config";
 
 const getNextLocalDate = () => {
   const date = new Date();
@@ -181,7 +182,7 @@ function BorrowModal({ equipment, onClose, onSuccess }) {
     setMessage("");
 
     try {
-      const response = await fetch("http://localhost:5000/api/borrowing", {
+      const response = await fetch(`${API_URL}/borrowing`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

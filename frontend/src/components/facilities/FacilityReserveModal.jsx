@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import "./FacilityModals.css";
+import { API_URL } from "../../config";
 
 function FacilityReserveModal({ facility, onClose }) {
   const tomorrow = new Date();
@@ -128,7 +129,7 @@ function FacilityReserveModal({ facility, onClose }) {
       }
 
       const response = await fetch(
-        "http://localhost:5000/api/reservations",
+        `${API_URL}/reservations`,
         {
           method: "POST",
           headers: {

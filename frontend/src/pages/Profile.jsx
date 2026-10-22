@@ -2,8 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FaUserCircle } from "react-icons/fa";
 import "./profile.css";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL, API_BASE } from "../config";
 
 function InfoItem({ label, value }) {
   return (
@@ -283,7 +282,7 @@ const userIdValue =
                   src={
                     user.profile_image.startsWith("http")
                       ? user.profile_image
-                      : "http://localhost:5000" + user.profile_image
+                      : API_BASE + user.profile_image
                   }
                   alt="Profile"
                 />

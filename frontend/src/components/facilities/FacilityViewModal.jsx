@@ -1,5 +1,6 @@
 import React from "react";
 import "./FacilityModals.css";
+import { API_BASE } from "../../config";
 
 function FacilityViewModal({ facility, onClose, onReserve }) {
   const status =
@@ -21,7 +22,7 @@ function FacilityViewModal({ facility, onClose, onReserve }) {
             {facility?.image_url ? (
               <img
                 className="facility-modal-photo"
-                src={`http://localhost:5000${facility.image_url}`}
+                src={`${API_BASE}${facility.image_url}`}
                 alt={facility.name || "Facility"}
               />
             ) : (

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./ManageFacilityModal.css";
+import { API_URL, API_BASE } from "../../config";
 
 function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -33,7 +34,7 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
       });
       setPreviewUrl(
         facility.image_url
-          ? `http://localhost:5000${facility.image_url}`
+          ? `${API_BASE}${facility.image_url}`
           : ""
       );
     } else {
@@ -126,8 +127,8 @@ function ManageFacilityModal({ facility, isAddMode, onClose, onSuccess }) {
     try {
       const token = localStorage.getItem("token");
       const url = isAddMode
-        ? "http://localhost:5000/api/facilities"
-        : `http://localhost:5000/api/facilities/${facility.id}`;
+        ? `${API_URL}/facilities`
+        : `${API_URL}/facilities/${facility.id}`;
 
       const method = isAddMode ? "POST" : "PUT";
       const payload = new FormData();

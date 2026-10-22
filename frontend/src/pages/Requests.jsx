@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import "./Requests.css";
 import { FaLayerGroup, FaMapMarkerAlt, FaCalendarAlt } from "react-icons/fa";
+import { API_URL } from "../config";
 
 const hiddenRequestStatuses = new Set([
   "return",
@@ -53,10 +54,10 @@ function Requests() {
         };
 
         const [equipmentResponse, facilityResponse] = await Promise.all([
-          fetch("http://localhost:5000/api/borrowing/my-requests", {
+          fetch(`${API_URL}/borrowing/my-requests`, {
             headers,
           }),
-          fetch("http://localhost:5000/api/reservations/my-reservations", {
+          fetch(`${API_URL}/reservations/my-reservations`, {
             headers,
           }),
         ]);
@@ -124,8 +125,8 @@ function Requests() {
 
       const endpoint =
         item.type === "Equipment"
-          ? `http://localhost:5000/api/borrowing/my-requests/${item.id}/return`
-          : `http://localhost:5000/api/reservations/my-reservations/${item.id}/return`;
+          ? `${API_URL}/borrowing/my-requests/${item.id}/return`
+          : `${API_URL}/reservations/my-reservations/${item.id}/return`;
 
       const response = await fetch(endpoint, {
         method: "POST",

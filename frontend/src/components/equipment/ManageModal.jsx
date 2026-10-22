@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./ManageModal.css";
+import { API_URL, API_BASE } from "../../config";
 
 const normalizeConditionStatus = (status) => {
   if (status === "Good") return "Available";
@@ -38,7 +39,7 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
       });
       setPreviewUrl(
         equipment.image_url
-          ? `http://localhost:5000${equipment.image_url}`
+          ? `${API_BASE}${equipment.image_url}`
           : ""
       );
     } else {
@@ -155,8 +156,8 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
     try {
       const token = localStorage.getItem("token");
       const url = isAddMode
-        ? "http://localhost:5000/api/equipment"
-        : `http://localhost:5000/api/equipment/${equipment.id}`;
+        ? `${API_URL}/equipment`
+        : `${API_URL}/equipment/${equipment.id}`;
 
       const method = isAddMode ? "POST" : "PUT";
       const payload = new FormData();

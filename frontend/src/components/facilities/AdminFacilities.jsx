@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { FaSearch } from "react-icons/fa";
 import "./AdminFacilities.css";
+import { API_URL } from "../../config";
 
 function AdminFacilities() {
   const [facilities, setFacilities] = useState([]);
@@ -18,7 +19,7 @@ function AdminFacilities() {
           sessionStorage.getItem("token");
 
         const response = await fetch(
-          "http://localhost:5000/api/facilities",
+          `${API_URL}/facilities`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

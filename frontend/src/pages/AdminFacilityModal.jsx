@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import "./AdminEquipmentModal.css";
+import { API_URL } from "../config";
 
 function AdminFacilityModal({
   facility,
@@ -96,8 +97,8 @@ function AdminFacilityModal({
       }
 
       const url = isAddMode
-        ? "http://localhost:5000/api/facilities"
-        : `http://localhost:5000/api/facilities/${facility.id}`;
+        ? `${API_URL}/facilities`
+        : `${API_URL}/facilities/${facility.id}`;
 
       const requestData = {
         name: form.name.trim(),

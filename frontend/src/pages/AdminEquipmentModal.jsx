@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FaTimes } from "react-icons/fa";
 import "./AdminEquipmentModal.css";
+import { API_URL } from "../config";
 
 function AdminEquipmentModal({
   equipment,
@@ -122,8 +123,8 @@ function AdminEquipmentModal({
       }
 
       const url = isAddMode
-        ? "http://localhost:5000/api/equipment"
-        : `http://localhost:5000/api/equipment/${equipment.id}`;
+        ? `${API_URL}/equipment`
+        : `${API_URL}/equipment/${equipment.id}`;
 
       const equipmentData = {
         name: form.name.trim(),

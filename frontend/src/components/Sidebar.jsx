@@ -2,6 +2,7 @@
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./sidebar.css";
+import { API_URL } from "../config";
 
 function Sidebar({ isOpen, onClose, role = "borrower" }) {
   const location = useLocation();
@@ -61,7 +62,7 @@ function Sidebar({ isOpen, onClose, role = "borrower" }) {
       sessionStorage.getItem("token");
 
     if (token) {
-      fetch("http://localhost:5000/api/auth/logout", {
+      fetch(`${API_URL}/auth/logout`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

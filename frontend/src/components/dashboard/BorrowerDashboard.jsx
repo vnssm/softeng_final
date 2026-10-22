@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FaCheckCircle } from "react-icons/fa";
 import "./BorrowerDashboard.css";
+import { API_URL } from "../../config";
 
 function BorrowerDashboard() {
   const [stats, setStats] = useState({
@@ -22,7 +23,7 @@ function BorrowerDashboard() {
         const token = localStorage.getItem("token");
 
         const res = await fetch(
-          "http://localhost:5000/api/dashboard/borrower",
+          `${API_URL}/dashboard/borrower`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./AdminDashboard.css";
+import { API_URL } from "../../config";
 
 function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -20,7 +21,7 @@ function AdminDashboard() {
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/dashboard/admin",
+          `${API_URL}/dashboard/admin`,
           {
             method: "GET",
             headers: {

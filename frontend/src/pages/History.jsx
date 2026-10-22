@@ -10,8 +10,7 @@ import {
   FaSyncAlt
 } from "react-icons/fa";
 import "./History.css";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL } from "../config";
 
 function History() {
   const [activities, setActivities] = useState([]);

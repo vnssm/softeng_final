@@ -1,6 +1,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import "./ApprovedTransactions.css";
+import { API_URL } from "../config";
 
 const APPROVED_STATUSES = new Set([
   "approved",
@@ -30,7 +31,7 @@ function ApprovedTransactions() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "http://localhost:5000/api/requests/requests",
+        `${API_URL}/requests/requests`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

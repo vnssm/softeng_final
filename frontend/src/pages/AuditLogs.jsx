@@ -7,6 +7,7 @@ import {
 
 import "./UserManagement.css";
 import "./AuditLogs.css";
+import { API_URL } from "../config";
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState([]);
@@ -29,7 +30,7 @@ export default function AuditLogs() {
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/audit-logs",
+          `${API_URL}/audit-logs`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -172,7 +173,7 @@ export default function AuditLogs() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "http://localhost:5000/api/activities/record-export",
+        `${API_URL}/activities/record-export`,
         {
           method: "POST",
           headers: {

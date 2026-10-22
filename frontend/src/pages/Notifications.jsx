@@ -12,8 +12,7 @@ import {
   FaSyncAlt
 } from "react-icons/fa";
 import "./Notifications.css";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL } from "../config";
 
 function Notifications() {
   const [notifications, setNotifications] = useState([]);

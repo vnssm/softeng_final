@@ -14,6 +14,7 @@ import SecurityAccess from "../components/SystemSettings/SecurityAccess";
 
 import "./UserManagement.css";
 import "./SystemSettings.css";
+import { API_URL } from "../config";
 
 export default function SystemSettings() {
   const [activeTab, setActiveTab] = useState("general");
@@ -57,7 +58,7 @@ export default function SystemSettings() {
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/system-settings",
+          `${API_URL}/system-settings`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -239,7 +240,7 @@ export default function SystemSettings() {
       }
 
       const response = await fetch(
-        "http://localhost:5000/api/system-settings",
+        `${API_URL}/system-settings`,
         {
           method: "PUT",
           headers: {

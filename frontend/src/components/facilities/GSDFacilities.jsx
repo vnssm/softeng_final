@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FaPlus, FaSearch } from "react-icons/fa";
 import ManageFacilityModal from "./ManageFacilityModal";
 import "./GSDFacilities.css";
+import { API_URL, API_BASE } from "../../config";
 
 function GSDFacilities() {
   const [search, setSearch] = useState("");
@@ -17,7 +18,7 @@ function GSDFacilities() {
     try {
       setError("");
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/facilities", {
+      const res = await fetch(`${API_URL}/facilities`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -141,7 +142,7 @@ function GSDFacilities() {
               <div className="facility-image">
                 {facility.image_url ? (
                   <img
-                    src={`http://localhost:5000${facility.image_url}`}
+                    src={`${API_BASE}${facility.image_url}`}
                     alt={facility.name}
                     style={{
                       width: "100%",

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import ManageModal from "./ManageModal";
 import "./GSDEquipment.css";
+import { API_URL, API_BASE } from "../../config";
 
 function GSDEquipment() {
   const [equipments, setEquipments] = useState([]);
@@ -15,7 +16,7 @@ function GSDEquipment() {
   // Fetch equipment list
   const fetchEquipment = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/equipment", {
+      const res = await fetch(`${API_URL}/equipment`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -87,7 +88,7 @@ function GSDEquipment() {
               <div className="equipment-image">
                 {item.image_url ? (
                   <img
-                    src={`http://localhost:5000${item.image_url}`}
+                    src={`${API_BASE}${item.image_url}`}
                     alt={item.name}
                     className="equipment-photo"
                   />

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FaPlus, FaEdit, FaTrash, FaUndo } from "react-icons/fa";
 import AdminFacilityModal from "./AdminFacilityModal";
 import "./UserManagement.css";
+import { API_URL } from "../config";
 
 function FacilityManagement() {
   const [facilities, setFacilities] = useState([]);
@@ -19,7 +20,7 @@ function FacilityManagement() {
 
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/facilities", {
+      const res = await fetch(`${API_URL}/facilities`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -94,7 +95,7 @@ function FacilityManagement() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://localhost:5000/api/facilities/${item.id}`,
+        `${API_URL}/facilities/${item.id}`,
         {
           method: "PUT",
           headers: {
