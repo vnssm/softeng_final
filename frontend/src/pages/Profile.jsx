@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { FaUserCircle } from "react-icons/fa";
-import "./profile.css";
+import "./Profile.css";
 import { API_URL, API_BASE } from "../config";
 
 function InfoItem({ label, value }) {
