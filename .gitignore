@@ -17,3 +17,5 @@ backend/dist/
 # Logs
 *.log
 npm-debug.log*
+
+*.backup
