@@ -321,9 +321,13 @@ exports.approveRequest = async (req, res) => {
 
       const scheduledTime =
         request.date_needed && request.time_start
-          ? String(request.date_needed).slice(0, 10) +
+          ? new Date(request.date_needed).getFullYear() +
+            "-" +
+            String(new Date(request.date_needed).getMonth() + 1).padStart(2, "0") +
+            "-" +
+            String(new Date(request.date_needed).getDate()).padStart(2, "0") +
             " " +
-            request.time_start
+            String(request.time_start).slice(0, 8)
           : null;
 
       await connection.query(
