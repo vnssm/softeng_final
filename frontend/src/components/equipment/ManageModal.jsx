@@ -9,6 +9,13 @@ const normalizeConditionStatus = (status) => {
   return status;
 };
 
+const convertConditionStatus = (status) => {
+  if (status === "Available") return "Good";
+  if (status === "Under maintenance") return "Needs Repair";
+  if (status === "Unavailable") return "Damaged";
+  return status;
+};
+
 function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -163,8 +170,12 @@ function ManageModal({ equipment, isAddMode, onClose, onSuccess }) {
       const payload = new FormData();
 
       Object.entries(formData).forEach(([key, value]) => {
-        payload.append(key, value);
-      });
+  if (key === "condition_status") {
+    payload.append(key, convertConditionStatus(value));
+  } else {
+    payload.append(key, value);
+  }
+});
 
       if (selectedImage) {
         payload.append("image", selectedImage);
