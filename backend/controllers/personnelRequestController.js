@@ -34,6 +34,34 @@ async function notifyGSDPersonnelInTransaction(connection, { title, message, typ
   });
 }
 
+exports.getActivePersonnel = async (req, res) => {
+  try {
+    const [personnel] = await db.query(
+      `SELECT id, first_name, last_name, employee_id
+       FROM users
+       WHERE role = 'personnel'
+         AND is_active = 1
+       ORDER BY first_name ASC, last_name ASC`
+    );
+
+    const formattedPersonnel = personnel.map((person) => ({
+      id: person.id,
+      name: person.first_name + " " + person.last_name,
+      employee_id: person.employee_id,
+    }));
+
+    return res.status(200).json({
+      personnel: formattedPersonnel,
+    });
+  } catch (error) {
+    console.error("Get active personnel error:", error);
+
+    return res.status(500).json({
+      message: "Failed to retrieve active personnel.",
+    });
+  }
+};
+
 exports.getPersonnelRequests = async (req, res) => {
   try {
 
@@ -203,9 +231,9 @@ exports.approveRequest = async (req, res) => {
 
   try {
     const requestId = req.params.id;
-    const assignedName = req.body.assignedPersonnel;
+    const assignedPersonnelId = req.body.assignedPersonnelId;
 
-    if (!assignedName) {
+    if (!assignedPersonnelId) {
       return res.status(400).json({
         message: "Please assign personnel."
       });
@@ -237,12 +265,12 @@ exports.approveRequest = async (req, res) => {
     // Find the assigned personnel's user ID
     const [personnel] = await connection.query(
       `SELECT id
-       FROM users
-       WHERE TRIM(CONCAT(first_name, ' ', last_name)) = ?
-         AND role = 'personnel'
-         AND is_active = 1
-       LIMIT 1`,
-      [assignedName]
+      FROM users
+      WHERE id = ?
+        AND role = 'personnel'
+        AND is_active = 1
+      LIMIT 1`,
+      [assignedPersonnelId]
     );
 
     if (personnel.length === 0) {

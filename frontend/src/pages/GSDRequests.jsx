@@ -92,6 +92,8 @@ function GSDRequests() {
   const [decision, setDecision] = useState(""); // "approve" | "reject"
   const [rejectReason, setRejectReason] = useState("");
   const [assignedPersonnel, setAssignedPersonnel] = useState("");
+  const [activePersonnel, setActivePersonnel] = useState([]);
+  const [loadingPersonnel, setLoadingPersonnel] = useState(false);
   const [waiverFile, setWaiverFile] = useState(null);
   const [approvalFieldErrors, setApprovalFieldErrors] = useState({});
 
@@ -177,6 +179,40 @@ function GSDRequests() {
       window.removeEventListener("focus", refreshVisibleRequests);
       window.clearInterval(refreshInterval);
     };
+  }, []);
+
+  useEffect(() => {
+    const loadActivePersonnel = async () => {
+      try {
+        setLoadingPersonnel(true);
+
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+          `${API_URL}/requests/active-personnel`,
+          {
+            headers: {
+              Authorization: "Bearer " + token,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load active personnel.");
+        }
+
+        setActivePersonnel(data.personnel || []);
+      } catch (error) {
+        console.error("Load active personnel error:", error);
+        setActivePersonnel([]);
+      } finally {
+        setLoadingPersonnel(false);
+      }
+    };
+
+    loadActivePersonnel();
   }, []);
 
   // ADD THE NEW useEffect HERE
@@ -424,7 +460,7 @@ function GSDRequests() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            assignedPersonnel: assignedPersonnel,
+            assignedPersonnelId: Number(assignedPersonnel),
           }),
         }
       );
@@ -827,10 +863,16 @@ const handleRejectSend = async () => {
                         }}
                         required
                       >
-                        <option value="">Select personnel</option>
-                        <option value="Maria Santos">
-                          Maria Santos
+                        <option value="">
+                          {loadingPersonnel ? "Loading personnel..." : "Select personnel"}
                         </option>
+
+                        {activePersonnel.map((person) => (
+                          <option key={person.id} value={person.id}>
+                            {person.name}
+                            {person.employee_id ? " (" + person.employee_id + ")" : ""}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

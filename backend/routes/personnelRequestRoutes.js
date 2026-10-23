@@ -4,6 +4,7 @@ const router = express.Router();
 
 const {
   getPersonnelRequests,
+  getActivePersonnel,
   approveRequest,
   rejectRequest,
   inspectReturn,
@@ -20,6 +21,13 @@ router.get(
   protect,
   restrictTo("personnel", "admin"),
   getPersonnelRequests
+);
+
+router.get(
+  "/active-personnel",
+  protect,
+  restrictTo("personnel", "admin"),
+  getActivePersonnel
 );
 
 // Approve a request
