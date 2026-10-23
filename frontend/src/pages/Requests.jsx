@@ -168,10 +168,10 @@ function Requests() {
 
   // Display database statuses in a user-friendly format
   const getStatusLabel = (status) => {
-    if (status === "pending") return "Under Review";
-
     return status
       ? status
+          .toLowerCase()
+          .replaceAll(/[ -]+/g, "_")
           .split("_")
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" ")
@@ -247,8 +247,7 @@ function Requests() {
 
     const matchesStatus =
       statusFilter === "All" ||
-      (statusFilter === "Under Review" && item.status === "pending") ||
-      statusLabel === statusFilter;
+      statusLabel === getStatusLabel(statusFilter);
 
     return matchesSearch && matchesStatus;
   });
@@ -299,12 +298,13 @@ function Requests() {
               className="status-select"
             >
               <option value="All">All Statuses</option>
-              <option value="Under Review">Under Review</option>
+              <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
               <option value="Rejected">Rejected</option>
-              <option value="Active">Active</option>
+              <option value="Ongoing">Ongoing</option>
               <option value="Returned">Returned</option>
               <option value="Completed">Completed</option>
+              <option value="Completed With Issue">Completed With Issue</option>
               <option value="Overdue">Overdue</option>
               <option value="Cancelled">Cancelled</option>
             </select>

@@ -116,6 +116,7 @@ const formatEquipment = (item) => ({
 // GET ALL EQUIPMENT
 // =============================================
 
+
 exports.getAllEquipment = async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -123,6 +124,7 @@ exports.getAllEquipment = async (req, res) => {
               quantity_available, equipment_status, condition_status,
               location, image_url, is_active
        FROM equipment
+       WHERE is_active = 1
        ORDER BY name ASC`
     );
 
@@ -132,6 +134,7 @@ exports.getAllEquipment = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // =============================================
 // GET SINGLE EQUIPMENT

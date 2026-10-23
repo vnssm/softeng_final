@@ -11,7 +11,7 @@ function BorrowerEquipment() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Get equipment from the backend
+  // Get active equipment from the backend
   const fetchEquipment = async () => {
     try {
       setLoading(true);
@@ -19,14 +19,11 @@ function BorrowerEquipment() {
 
       const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        `${API_URL}/equipment`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_URL}/equipment`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await response.json();
 
@@ -34,34 +31,45 @@ function BorrowerEquipment() {
         throw new Error(data.message || "Failed to load equipment.");
       }
 
-      // Check the availability of each equipment
-      const equipmentList = data.map((item) => {
-        const rawConditionStatus = String(item.condition_status || "")
-          .trim()
-          .toLowerCase()
-          .replaceAll(" ", "_");
-        const conditionStatus = {
-          good: "Available",
-          needs_repair: "Under maintenance",
-          damaged: "Unavailable",
-          available: "Available",
-          unavailable: "Unavailable",
-          under_maintenance: "Under maintenance",
-        }[rawConditionStatus] ||
-          (Number(item.is_available) === 1 ? "Available" : "Unavailable");
-        const status =
-          Number(item.is_active) !== 1 ? "Unavailable" : conditionStatus;
-        const available =
-          status === "Available" &&
-          Number(item.is_active) === 1 &&
-          Number(item.quantity_available) > 0;
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid equipment data received.");
+      }
 
-        return {
-          ...item,
-          status,
-          available,
-        };
-      });
+      // Display active equipment only
+      const equipmentList = data
+        .filter((item) => Number(item.is_active) === 1)
+        .map((item) => {
+          const rawConditionStatus = String(
+            item.condition_status || ""
+          )
+            .trim()
+            .toLowerCase()
+            .replaceAll(" ", "_");
+
+          const conditionStatus = {
+            good: "Available",
+            needs_repair: "Under maintenance",
+            damaged: "Unavailable",
+            available: "Available",
+            unavailable: "Unavailable",
+            under_maintenance: "Under maintenance",
+          }[rawConditionStatus] ||
+            (Number(item.is_available) === 1
+              ? "Available"
+              : "Unavailable");
+
+          const status = conditionStatus;
+
+          const available =
+            status === "Available" &&
+            Number(item.quantity_available) > 0;
+
+          return {
+            ...item,
+            status,
+            available,
+          };
+        });
 
       setEquipments(equipmentList);
     } catch (err) {
@@ -79,9 +87,7 @@ function BorrowerEquipment() {
 
   // Open the borrowing modal
   const handleView = (equipment) => {
-    if (!equipment.available) {
-      return;
-    }
+    if (!equipment.available) return;
 
     setSelectedEquipment(equipment);
     setIsModalOpen(true);
@@ -95,38 +101,27 @@ function BorrowerEquipment() {
 
   return (
     <div className="borrower-equipment">
-      {/* Header */}
       <div className="equipment-header">
         <h1>Equipment</h1>
         <p>Equipment of MMSU</p>
       </div>
 
-      {/* Loading message */}
-      {loading && (
-        <p>Loading equipment...</p>
-      )}
+      {loading && <p>Loading equipment...</p>}
 
-      {/* Error message */}
       {!loading && error && (
         <div className="equipment-message">
           <p>{error}</p>
-          <button onClick={fetchEquipment}>
-            Try Again
-          </button>
+          <button onClick={fetchEquipment}>Try Again</button>
         </div>
       )}
 
-      {/* Equipment Grid */}
       {!loading && !error && (
         <div className="equipment-grid">
           {equipments.length === 0 ? (
-            <p>No equipment has been listed yet.</p>
+            <p>No active equipment is currently available for display.</p>
           ) : (
             equipments.map((item) => (
-              <div
-                key={item.id}
-                className="equipment-card"
-              >
+              <div key={item.id} className="equipment-card">
                 <div className="equipment-image">
                   {item.image_url ? (
                     <img
@@ -135,19 +130,16 @@ function BorrowerEquipment() {
                       className="equipment-photo"
                     />
                   ) : (
-                    <div className="image-placeholder"></div>
+                    <div className="image-placeholder" />
                   )}
                 </div>
 
-                <div className="equipment-name">
-                  {item.name}
-                </div>
+                <div className="equipment-name">{item.name}</div>
 
                 <div className="equipment-details">
                   <p>
                     Category: {item.category || "Not specified"}
                   </p>
-
                   <p>
                     Available: {item.quantity_available} /{" "}
                     {item.quantity_total}
@@ -173,7 +165,6 @@ function BorrowerEquipment() {
         </div>
       )}
 
-      {/* Borrow / Reserve Modal */}
       {isModalOpen && selectedEquipment && (
         <BorrowModal
           equipment={selectedEquipment}

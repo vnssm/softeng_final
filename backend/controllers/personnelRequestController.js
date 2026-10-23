@@ -243,12 +243,13 @@ exports.approveRequest = async (req, res) => {
     await connection.beginTransaction();
 
     // Find the request
+    // Find and lock the request
     const [requests] = await connection.query(
       `SELECT id, user_id, request_code, request_type, fulfillment_type,
               date_needed, time_start, location
-       FROM requests
-       WHERE id = ? AND status IN ('pending', 'under_review')
-       FOR UPDATE`,
+      FROM requests
+      WHERE id = ? AND status IN ('pending', 'under_review')
+      FOR UPDATE`,
       [requestId]
     );
 
@@ -261,6 +262,109 @@ exports.approveRequest = async (req, res) => {
     }
 
     const request = requests[0];
+
+    // Check facility availability before approving a facility request
+
+    // Check facility availability before approving a facility request
+    if (request.request_type === "facility") {
+      const [facilityRows] = await connection.query(
+        `SELECT facility_id, date_needed, date_end,
+                time_start, time_end
+         FROM requests
+         WHERE id = ?`,
+        [request.id]
+      );
+
+      const facilityRequest = facilityRows[0];
+
+      if (!facilityRequest || !facilityRequest.facility_id) {
+        await connection.rollback();
+
+        return res.status(400).json({
+          message: "No facility was selected for this reservation."
+        });
+      }
+
+      const [conflictingRows] = await connection.query(
+        `SELECT id, request_code
+         FROM requests
+         WHERE facility_id = ?
+           AND request_type = 'facility'
+           AND id != ?
+           AND status IN (
+             'pending',
+             'under_review',
+             'approved',
+             'for_delivery',
+             'for_pickup',
+             'ongoing'
+           )
+           AND TIMESTAMP(date_needed, time_start)
+               < TIMESTAMP(?, ?)
+           AND TIMESTAMP(COALESCE(date_end, date_needed), time_end)
+               > TIMESTAMP(?, ?)
+         LIMIT 1
+         FOR UPDATE`,
+        [
+          facilityRequest.facility_id,
+          request.id,
+          facilityRequest.date_end || facilityRequest.date_needed,
+          facilityRequest.time_end,
+          facilityRequest.date_needed,
+          facilityRequest.time_start
+        ]
+      );
+
+      if (conflictingRows.length > 0) {
+        await connection.rollback();
+
+        return res.status(409).json({
+          message:
+            "This facility has another reservation during the requested time. Please review the facility schedule."
+        });
+      }
+    }
+
+    // Check equipment availability before approving an equipment request
+    let requestedEquipment = [];
+
+    if (request.request_type === "equipment") {
+      const [equipmentItems] = await connection.query(
+        `SELECT
+          ri.equipment_id,
+          ri.quantity,
+          e.name,
+          e.quantity_available
+        FROM request_items ri
+        JOIN equipment e ON e.id = ri.equipment_id
+        WHERE ri.request_id = ?
+        FOR UPDATE`,
+        [request.id]
+      );
+
+      if (equipmentItems.length === 0) {
+        await connection.rollback();
+
+        return res.status(400).json({
+          message: "No equipment items were found for this request."
+        });
+      }
+
+      for (const item of equipmentItems) {
+        if (Number(item.quantity_available) < Number(item.quantity)) {
+          await connection.rollback();
+
+          return res.status(400).json({
+            message:
+              "Not enough available quantity for " +
+              item.name +
+              ". Please check the equipment inventory."
+          });
+        }
+      }
+
+      requestedEquipment = equipmentItems;
+    }
 
     // Find the assigned personnel's user ID
     const [personnel] = await connection.query(
@@ -281,14 +385,36 @@ exports.approveRequest = async (req, res) => {
       });
     }
 
-    // Approve the request
-    await connection.query(
-      `UPDATE requests
-       SET status = 'approved',
-           approved_by = ?
-       WHERE id = ?`,
-      [req.user.id, requestId]
+    // Deduct equipment quantity when approving an equipment request
+for (const item of requestedEquipment) {
+  const [updateResult] = await connection.query(
+    `UPDATE equipment
+     SET quantity_available = quantity_available - ?
+     WHERE id = ?
+       AND quantity_available >= ?`,
+    [
+      Number(item.quantity),
+      item.equipment_id,
+      Number(item.quantity)
+    ]
+  );
+
+  if (updateResult.affectedRows !== 1) {
+    throw new Error(
+      "Equipment availability changed. Please try approving the request again."
     );
+  }
+}
+
+// Approve the request and record the approval time
+await connection.query(
+  `UPDATE requests
+   SET status = 'approved',
+       approved_by = ?,
+       approved_at = NOW()
+   WHERE id = ?`,
+  [req.user.id, requestId]
+);
 
     await connection.query(
       `INSERT INTO activity_logs
@@ -467,11 +593,13 @@ exports.rejectRequest = async (req, res) => {
     const request = requests[0];
 
     // Update the request status
+    // Update the request status and record the rejection time
     await connection.query(
       `UPDATE requests
-       SET status = 'rejected',
-           rejection_reason = ?
-       WHERE id = ?`,
+      SET status = 'rejected',
+          rejection_reason = ?,
+          updated_at = NOW()
+      WHERE id = ?`,
       [rejectionReason, requestId]
     );
 
@@ -598,14 +726,17 @@ exports.inspectReturn = async (req, res) => {
     }
 
     // Save the inspection and update the request status.
+    // Save the inspection and record the completion time.
     await connection.query(
       `UPDATE requests
-       SET status = ?,
-           return_condition = ?,
-           inspection_notes = ?,
-           returned_at = NOW(),
-           inspected_by = ?
-       WHERE id = ?`,
+      SET status = ?,
+          return_condition = ?,
+          inspection_notes = ?,
+          returned_at = NOW(),
+          completed_at = NOW(),
+          inspected_by = ?,
+          updated_at = NOW()
+      WHERE id = ?`,
       [
         newStatus,
         returnCondition,
