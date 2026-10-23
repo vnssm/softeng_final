@@ -27,11 +27,20 @@ exports.getBorrowerDashboard = async (req, res) => {
     );
 
     // 1. Pending Requests (equipment)
-    const [pendingRequests] = await pool.query(
-      `SELECT COUNT(*) AS count FROM requests 
-       WHERE user_id = ? AND request_type = 'equipment' AND status = 'pending'`,
-      [userId]
-    );
+    // 1. Pending Requests (equipment, excluding removed transactions)
+const [pendingRequests] = await pool.query(
+  `SELECT COUNT(*) AS count
+   FROM requests r
+   WHERE r.user_id = ?
+     AND r.request_type = 'equipment'
+     AND r.status = 'pending'
+     AND NOT EXISTS (
+       SELECT 1
+       FROM transaction_removals tr
+       WHERE tr.request_id = r.id
+     )`,
+  [userId]
+);
 
     // 2. Pending Reservations (facility)
     const [pendingReservations] = await pool.query(
@@ -86,15 +95,22 @@ exports.getBorrowerDashboard = async (req, res) => {
 
     // 6. Request progress (all requests belonging to this borrower)
     const [requestProgress] = await pool.query(
-      `SELECT
-         id,
-         request_code,
-         request_type,
-         status,
-         created_at
-       FROM requests
-       WHERE user_id = ?
-       ORDER BY created_at DESC`,
+      `SELECT id, request_code, request_type, status, created_at,
+              updated_at, completed_at
+      FROM requests
+      WHERE user_id = ?
+        AND NOT (
+          status IN ('rejected', 'completed', 'completed_with_issue')
+          AND (
+            (status = 'rejected'
+              AND updated_at <= DATE_SUB(NOW(), INTERVAL 24 HOUR))
+            OR
+            (status IN ('completed', 'completed_with_issue')
+              AND completed_at IS NOT NULL
+              AND completed_at <= DATE_SUB(NOW(), INTERVAL 24 HOUR))
+          )
+        )
+      ORDER BY created_at DESC`,
       [userId]
     );
 
