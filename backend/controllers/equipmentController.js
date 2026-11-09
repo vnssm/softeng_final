@@ -608,3 +608,76 @@ exports.updateEquipment = [
     }
   },
 ];
+
+// =============================================
+// DEACTIVATE EQUIPMENT
+// =============================================
+
+exports.deleteEquipment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [rows] = await pool.query(
+      "SELECT * FROM equipment WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        message: "Equipment not found.",
+      });
+    }
+
+    const oldValues = rows[0];
+
+    if (Number(oldValues.is_active) === 0) {
+      return res.status(400).json({
+        message: "This equipment has already been removed.",
+      });
+    }
+
+    await pool.query(
+      "UPDATE equipment SET is_active = 0 WHERE id = ?",
+      [id]
+    );
+
+    const [updatedRows] = await pool.query(
+      "SELECT * FROM equipment WHERE id = ?",
+      [id]
+    );
+
+    const newValues = updatedRows[0];
+
+    await saveAuditLog(
+      req,
+      "Equipment Deactivated",
+      "equipment",
+      id,
+      oldValues,
+      newValues
+    );
+
+    await logEquipmentActivity(
+      req,
+      "equipment_deactivated",
+      "Removed equipment from the active list: " + oldValues.name,
+      id
+    );
+
+    await notifyAdmins(
+      "Equipment Removed",
+      "Equipment " + oldValues.name + " was removed from the active equipment list.",
+      "equipment",
+      "equipment_deactivated"
+    );
+
+    res.status(200).json({
+      message: "Equipment removed from the list successfully.",
+    });
+  } catch (error) {
+    console.error("Delete equipment error:", error);
+    res.status(500).json({
+      message: "Server error while removing equipment.",
+    });
+  }
+};

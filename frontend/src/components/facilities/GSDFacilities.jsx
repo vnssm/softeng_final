@@ -96,6 +96,40 @@ function GSDFacilities() {
     fetchFacilities();
   };
 
+  
+const handleRemove = async (facility) => {
+  const confirmed = window.confirm(
+    `Are you sure you want to remove "${facility.name}" from the facility list?`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${API_URL}/facilities/${facility.id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to remove facility.");
+    }
+
+    alert(data.message || "Facility removed successfully.");
+    fetchFacilities();
+  } catch (err) {
+    alert(err.message || "Failed to remove facility.");
+  }
+};
+
+
   if (loading) {
     return (
       <div className="personnel-facilities">
@@ -165,12 +199,23 @@ function GSDFacilities() {
                 </span>
               </div>
 
-              <button
-                className="manage-btn"
-                onClick={() => openManageModal(facility)}
-              >
-                Manage
-              </button>
+              
+<div className="facility-actions">
+  <button
+    className="manage-btn"
+    onClick={() => openManageModal(facility)}
+  >
+    Manage
+  </button>
+
+  <button
+    className="remove-facility-btn"
+    onClick={() => handleRemove(facility)}
+  >
+    Remove
+  </button>
+</div>
+
             </div>
           ))
         )}

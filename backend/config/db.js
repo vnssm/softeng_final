@@ -20,7 +20,11 @@ const isLocalDatabase =
   process.env.DB_HOST === "127.0.0.1";
 
 if (!isLocalDatabase && process.env.DB_SSL_CA) {
-  const certificatePath = path.resolve(__dirname, "..", process.env.DB_SSL_CA);
+  const certificatePath = path.resolve(
+    __dirname,
+    "..",
+    process.env.DB_SSL_CA
+  );
 
   dbConfig.ssl = {
     ca: fs.readFileSync(certificatePath, "utf8"),

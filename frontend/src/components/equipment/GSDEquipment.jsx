@@ -56,6 +56,36 @@ function GSDEquipment() {
     fetchEquipment(); // refresh list
   };
 
+  const handleRemove = async (equipment) => {
+  const confirmed = window.confirm(
+    `Are you sure you want to remove "${equipment.name}" from the equipment list?`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/equipment/${equipment.id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to remove equipment.");
+    }
+
+    alert(data.message || "Equipment removed successfully.");
+    fetchEquipment();
+  } catch (err) {
+    alert(err.message || "Failed to remove equipment.");
+  }
+};
+
   if (loading) {
     return (
       <div className="personnel-equipment">
@@ -103,11 +133,18 @@ function GSDEquipment() {
               </div>
 
               <button
-                className="equipment-btn manage"
-                onClick={() => handleManage(item)}
-              >
-                Manage
-              </button>
+  className="equipment-btn manage"
+  onClick={() => handleManage(item)}
+>
+  Manage
+</button>
+
+<button
+  className="equipment-btn remove"
+  onClick={() => handleRemove(item)}
+>
+  Remove
+</button>
             </div>
           ))
         )}

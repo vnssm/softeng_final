@@ -165,3 +165,44 @@
     grid-template-columns: 1fr;
   }
 }
+
+.equipment-btn.manage,
+.equipment-btn.remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.equipment-btn.manage {
+  background-color: #075b0a;
+  color: #ffffff;
+}
+
+.equipment-btn.manage:hover {
+  background-color: #064708;
+}
+
+
+.equipment-btn.remove {
+  background-color: #ffffff;
+  color: #dc3545;
+  border-color: #dc3545;
+  margin-left: 8px;
+  margin-top: 8px;
+}
+
+
+.equipment-btn.remove:hover {
+  background-color: #fff1f2;
+  border-color: #bb2d3b;
+  color: #bb2d3b;
+}
+

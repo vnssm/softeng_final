@@ -117,6 +117,7 @@ exports.getAllFacilities = async (req, res) => {
       `SELECT id, name, description, capacity, location, image_url,
               is_available, condition_status, is_active
        FROM facilities
+       WHERE is_active = 1
        ORDER BY name ASC`
     );
 
@@ -602,3 +603,80 @@ exports.updateFacility = [
     }
   },
 ];
+
+
+ // =============================================
+// REMOVE FACILITY FROM ACTIVE LIST
+// =============================================
+
+exports.deleteFacility = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [rows] = await pool.query(
+      "SELECT * FROM facilities WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        message: "Facility not found.",
+      });
+    }
+
+    const oldValues = rows[0];
+
+    if (Number(oldValues.is_active) === 0) {
+      return res.status(400).json({
+        message: "This facility has already been removed.",
+      });
+    }
+
+    await pool.query(
+      "UPDATE facilities SET is_active = 0 WHERE id = ?",
+      [id]
+    );
+
+    const [updatedRows] = await pool.query(
+      "SELECT * FROM facilities WHERE id = ?",
+      [id]
+    );
+
+    const newValues = updatedRows[0];
+
+    await saveAuditLog(
+      req,
+      "Facility Deactivated",
+      "facilities",
+      id,
+      oldValues,
+      newValues
+    );
+
+    await logFacilityActivity(
+      req,
+      "facility_deactivated",
+      "Removed facility from the active list: " + oldValues.name,
+      id
+    );
+
+    await notifyAdmins(
+      "Facility Removed",
+      "Facility " + oldValues.name +
+        " was removed from the active facility list.",
+      "facility",
+      "facility_deactivated"
+    );
+
+    res.status(200).json({
+      message: "Facility removed from the list successfully.",
+    });
+  } catch (error) {
+    console.error("Delete facility error:", error);
+
+    res.status(500).json({
+      message: "Server error while removing facility.",
+    });
+  }
+};
+
