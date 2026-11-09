@@ -101,6 +101,65 @@ const logEquipmentActivity = async (
 };
 
 // =============================================
+// CANCEL PENDING BORROWING REQUESTS
+// =============================================
+
+const cancelPendingEquipmentRequests = async (
+  connection,
+  equipmentId,
+  equipmentName
+) => {
+  // Find pending borrowing requests for this equipment
+  const [requests] = await connection.query(
+    `SELECT r.id, r.user_id, r.request_code
+     FROM requests r
+     INNER JOIN request_items ri ON ri.request_id = r.id
+     WHERE ri.equipment_id = ?
+       AND r.request_type = 'equipment'
+       AND r.status = 'pending'`,
+    [equipmentId]
+  );
+
+  let cancelledCount = 0;
+
+  for (const request of requests) {
+    const [result] = await connection.query(
+      `UPDATE requests
+       SET status = 'cancelled'
+       WHERE id = ?
+         AND request_type = 'equipment'
+         AND status = 'pending'`,
+      [request.id]
+    );
+
+    if (result.affectedRows > 0) {
+      cancelledCount++;
+
+      // Notify the borrower
+      await connection.query(
+        `INSERT INTO notifications
+         (user_id, title, message, type, event_type, related_request_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          request.user_id,
+          "Borrowing Request Cancelled",
+          "Your borrowing request " +
+            request.request_code +
+            " for " +
+            equipmentName +
+            " was cancelled because the equipment was deactivated.",
+          "request",
+          "equipment_request_cancelled",
+          request.id,
+        ]
+      );
+    }
+  }
+
+  return cancelledCount;
+};
+
+// =============================================
 // FORMAT EQUIPMENT FOR THE FRONTEND
 // =============================================
 
@@ -461,40 +520,70 @@ exports.updateEquipment = [
         ? `/uploads/equipment/${req.file.filename}`
         : oldValues.image_url || null;
 
-      await pool.query(
-        `UPDATE equipment SET
-          name = COALESCE(?, name),
-          description = COALESCE(?, description),
-          category = COALESCE(?, category),
-          quantity_total = ?,
-          quantity_available = ?,
-          equipment_status = COALESCE(?, equipment_status),
-          condition_status = COALESCE(?, condition_status),
-          location = COALESCE(?, location),
-          image_url = ?,
-          is_active = ?
-         WHERE id = ?`,
-        [
-          name === undefined ? null : normalizedName,
-          description === undefined ? null : description.trim(),
-          category === undefined ? null : category.trim(),
-          newTotal,
-          newAvailable,
-          equipment_status === undefined ? null : equipment_status,
-          condition_status === undefined ? null : condition_status,
-          location === undefined ? null : location.trim(),
-          imageUrl,
-          newActiveStatus,
-          id,
-        ]
-      );
+      let newValues;
+let cancelledRequests = 0;
 
-      const [updatedRows] = await pool.query(
-        "SELECT * FROM equipment WHERE id = ?",
-        [id]
-      );
+const connection = await pool.getConnection();
 
-      const newValues = updatedRows[0];
+try {
+  await connection.beginTransaction();
+
+  await connection.query(
+    `UPDATE equipment SET
+      name = COALESCE(?, name),
+      description = COALESCE(?, description),
+      category = COALESCE(?, category),
+      quantity_total = ?,
+      quantity_available = ?,
+      equipment_status = COALESCE(?, equipment_status),
+      condition_status = COALESCE(?, condition_status),
+      location = COALESCE(?, location),
+      image_url = ?,
+      is_active = ?
+     WHERE id = ?`,
+    [
+      name === undefined ? null : normalizedName,
+      description === undefined ? null : description.trim(),
+      category === undefined ? null : category.trim(),
+      newTotal,
+      newAvailable,
+      equipment_status === undefined ? null : equipment_status,
+      condition_status === undefined ? null : condition_status,
+      location === undefined ? null : location.trim(),
+      imageUrl,
+      newActiveStatus,
+      id,
+    ]
+  );
+
+  const [updatedRows] = await connection.query(
+    "SELECT * FROM equipment WHERE id = ?",
+    [id]
+  );
+
+  newValues = updatedRows[0];
+
+  // Cancel pending requests if equipment was deactivated
+  if (
+    Number(oldValues.is_active) === 1 &&
+    Number(newValues.is_active) === 0
+  ) {
+    cancelledRequests = await cancelPendingEquipmentRequests(
+      connection,
+      id,
+      newValues.name
+    );
+  }
+
+  await connection.commit();
+
+} catch (error) {
+  await connection.rollback();
+  throw error;
+
+} finally {
+  connection.release();
+}
 
       let action = "Equipment Updated";
 
@@ -636,17 +725,42 @@ exports.deleteEquipment = async (req, res) => {
       });
     }
 
-    await pool.query(
-      "UPDATE equipment SET is_active = 0 WHERE id = ?",
-      [id]
-    );
+    let newValues;
+let cancelledRequests = 0;
 
-    const [updatedRows] = await pool.query(
-      "SELECT * FROM equipment WHERE id = ?",
-      [id]
-    );
+const connection = await pool.getConnection();
 
-    const newValues = updatedRows[0];
+try {
+  await connection.beginTransaction();
+
+  await connection.query(
+    "UPDATE equipment SET is_active = 0 WHERE id = ?",
+    [id]
+  );
+
+  const [updatedRows] = await connection.query(
+    "SELECT * FROM equipment WHERE id = ?",
+    [id]
+  );
+
+  newValues = updatedRows[0];
+
+  // Cancel pending borrowing requests for this equipment
+  cancelledRequests = await cancelPendingEquipmentRequests(
+    connection,
+    id,
+    newValues.name
+  );
+
+  await connection.commit();
+
+} catch (error) {
+  await connection.rollback();
+  throw error;
+
+} finally {
+  connection.release();
+}
 
     await saveAuditLog(
       req,
@@ -672,8 +786,9 @@ exports.deleteEquipment = async (req, res) => {
     );
 
     res.status(200).json({
-      message: "Equipment removed from the list successfully.",
-    });
+  message: "Equipment removed from the list successfully.",
+  cancelledRequests: cancelledRequests,
+});
   } catch (error) {
     console.error("Delete equipment error:", error);
     res.status(500).json({

@@ -6,6 +6,59 @@ const pool = require("../config/db");
 const saveAuditLog = require("../utils/auditLogger");
 const { notifyAdmins } = require("../utils/notificationHelper");
 
+
+// Cancel pending reservations when a facility is deactivated
+const cancelPendingFacilityReservations = async (
+  connection,
+  facilityId,
+  facilityName
+) => {
+  const [reservations] = await connection.query(
+    `SELECT id, user_id, request_code
+     FROM requests
+     WHERE facility_id = ?
+       AND request_type = 'facility'
+       AND status = 'pending'`,
+    [facilityId]
+  );
+
+  let cancelledCount = 0;
+
+  for (const reservation of reservations) {
+    const [result] = await connection.query(
+      `UPDATE requests
+       SET status = 'cancelled'
+       WHERE id = ?
+         AND request_type = 'facility'
+         AND status = 'pending'`,
+      [reservation.id]
+    );
+
+    if (result.affectedRows > 0) {
+      cancelledCount++;
+
+      await connection.query(
+        `INSERT INTO notifications
+         (user_id, title, message, type, event_type, related_request_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          reservation.user_id,
+          "Facility Reservation Cancelled",
+          "Your facility reservation " +
+            reservation.request_code +
+            " for " +
+            facilityName +
+            " was cancelled because the facility was deactivated.",
+          "request",
+          "facility_reservation_cancelled",
+          reservation.id
+        ]
+      );
+    }
+  }
+
+  return cancelledCount;
+};
 // =============================================
 // FACILITY PHOTO UPLOAD
 // =============================================
@@ -468,44 +521,76 @@ exports.updateFacility = [
           ? oldValues.is_active
           : convertBooleanValue(is_active);
 
-      await pool.query(
-        `UPDATE facilities SET
-          name = COALESCE(?, name),
-          description = ?,
-          capacity = ?,
-          location = ?,
-          image_url = ?,
-          condition_status = ?,
-          is_available = ?,
-          is_active = ?
-         WHERE id = ?`,
-        [
-          name === undefined ? null : name.trim(),
-          description === undefined
-            ? oldValues.description
-            : description === null
-              ? null
-              : description.trim() || null,
-          newCapacity,
-          location === undefined
-            ? oldValues.location
-            : location === null
-              ? null
-              : location.trim() || null,
-          imageUrl,
-          newCondition,
-          newAvailability,
-          newActiveStatus,
-          id,
-        ]
-      );
+            let connection;
+      let cancelledReservations = 0;
 
-      const [updatedRows] = await pool.query(
-        "SELECT * FROM facilities WHERE id = ?",
-        [id]
-      );
+      try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
 
-      const newValues = updatedRows[0];
+        await connection.query(
+          `UPDATE facilities SET
+            name = COALESCE(?, name),
+            description = ?,
+            capacity = ?,
+            location = ?,
+            image_url = ?,
+            condition_status = ?,
+            is_available = ?,
+            is_active = ?
+           WHERE id = ?`,
+          [
+            name === undefined ? null : name.trim(),
+            description === undefined
+              ? oldValues.description
+              : description === null
+                ? null
+                : description.trim() || null,
+            newCapacity,
+            location === undefined
+              ? oldValues.location
+              : location === null
+                ? null
+                : location.trim() || null,
+            imageUrl,
+            newCondition,
+            newAvailability,
+            newActiveStatus,
+            id,
+          ]
+        );
+
+        const [updatedRows] = await connection.query(
+          "SELECT * FROM facilities WHERE id = ?",
+          [id]
+        );
+
+        const newValues = updatedRows[0];
+
+        if (
+          Number(oldValues.is_active) === 1 &&
+          Number(newValues.is_active) === 0
+        ) {
+          cancelledReservations =
+            await cancelPendingFacilityReservations(
+              connection,
+              id,
+              newValues.name
+            );
+        }
+
+        await connection.commit();
+      } catch (error) {
+        if (connection) {
+          await connection.rollback();
+        }
+
+        throw error;
+      } finally {
+        if (connection) {
+          connection.release();
+        }
+      }
 
       let action = "Facility Updated";
 
@@ -594,9 +679,10 @@ exports.updateFacility = [
         notificationType
       );
 
-      res.status(200).json({
+            res.status(200).json({
         message: "Facility updated successfully",
         image_url: imageUrl,
+        cancelledReservations: cancelledReservations,
       });
     } catch (error) {
       respondToFacilityError(error, res, "Update facility");
@@ -609,16 +695,24 @@ exports.updateFacility = [
 // REMOVE FACILITY FROM ACTIVE LIST
 // =============================================
 
+
 exports.deleteFacility = async (req, res) => {
+  let connection;
+
   try {
     const { id } = req.params;
 
-    const [rows] = await pool.query(
-      "SELECT * FROM facilities WHERE id = ?",
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query(
+      "SELECT * FROM facilities WHERE id = ? FOR UPDATE",
       [id]
     );
 
     if (rows.length === 0) {
+      await connection.rollback();
+
       return res.status(404).json({
         message: "Facility not found.",
       });
@@ -627,22 +721,33 @@ exports.deleteFacility = async (req, res) => {
     const oldValues = rows[0];
 
     if (Number(oldValues.is_active) === 0) {
+      await connection.rollback();
+
       return res.status(400).json({
         message: "This facility has already been removed.",
       });
     }
 
-    await pool.query(
+    await connection.query(
       "UPDATE facilities SET is_active = 0 WHERE id = ?",
       [id]
     );
 
-    const [updatedRows] = await pool.query(
+    const [updatedRows] = await connection.query(
       "SELECT * FROM facilities WHERE id = ?",
       [id]
     );
 
     const newValues = updatedRows[0];
+
+    const cancelledReservations =
+      await cancelPendingFacilityReservations(
+        connection,
+        id,
+        newValues.name
+      );
+
+    await connection.commit();
 
     await saveAuditLog(
       req,
@@ -670,13 +775,23 @@ exports.deleteFacility = async (req, res) => {
 
     res.status(200).json({
       message: "Facility removed from the list successfully.",
+      cancelledReservations: cancelledReservations,
     });
   } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
     console.error("Delete facility error:", error);
 
     res.status(500).json({
       message: "Server error while removing facility.",
     });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
+
 

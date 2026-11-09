@@ -248,6 +248,23 @@ function TransactionManagement() {
   const getTimelineSteps = (tx) => {
     const status = normalizeStatus(tx.status);
 
+    if (status === "cancelled") {
+  return [
+    {
+      key: "requested",
+      title: "Requested",
+      done: true,
+      date: formatTimelineDateTime(tx.created_at),
+    },
+    {
+      key: "cancelled",
+      title: "Cancelled",
+      done: true,
+      date: formatTimelineDateTime(tx.updated_at),
+    },
+  ];
+}
+
     const approvedStatuses = [
       "approved",
       "for_delivery",
